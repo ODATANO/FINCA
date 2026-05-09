@@ -1,0 +1,56 @@
+<mvc:View xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:layout="sap.ui.layout"
+  controllerName="finca.controller.Verify">
+
+  <Page id="verifyPage" title="On-Chain Verification" showNavButton="false">
+    <content>
+      <VBox class="sapUiSmallMargin">
+        <MessageStrip text="Verify financial data anchored on the Cardano blockchain. Enter a transaction hash to check the on-chain metadata against local records."
+                       type="Information" showIcon="true" class="sapUiSmallMarginBottom"/>
+
+        <!-- ── Search ───────────────────────────────────────────── -->
+        <Panel headerText="Lookup">
+          <HBox alignItems="End" class="sapUiSmallMargin">
+            <VBox class="sapUiSmallMarginEnd" width="500px">
+              <Label text="Cardano TX Hash"/>
+              <Input id="verifyTxHashInput" placeholder="e.g. 2b8216b428b529..." width="100%"/>
+            </VBox>
+            <Button text="Verify" icon="sap-icon://accept" press=".onVerifyTx" type="Emphasized"/>
+          </HBox>
+
+          <HBox alignItems="End" class="sapUiSmallMargin">
+            <VBox class="sapUiSmallMarginEnd" width="500px">
+              <Label text="Report ID"/>
+              <Input id="verifyReportInput" placeholder="UUID of the financial report" width="100%"/>
+            </VBox>
+            <Button text="Verify Report" icon="sap-icon://bar-chart" press=".onVerifyReport" type="Emphasized"/>
+          </HBox>
+        </Panel>
+
+        <!-- ── Results ──────────────────────────────────────────── -->
+        <Panel id="verifyResultPanel" headerText="Verification Result" visible="{app>/verify/hasResult}" class="sapUiSmallMarginTop">
+
+          <ObjectHeader
+            title="{= ${app>/verify/verified} ? 'Verified' : 'Not Verified'}"
+            icon="{= ${app>/verify/verified} ? 'sap-icon://accept' : 'sap-icon://decline'}"
+            introActive="false">
+            <statuses>
+              <ObjectStatus text="{= ${app>/verify/verified} ? 'On-Chain Data Found' : 'No Matching Data'}"
+                state="{= ${app>/verify/verified} ? 'Success' : 'Error'}"/>
+              <ObjectStatus text="{= ${app>/verify/localMatch} ? 'Local Record Matches' : 'No Local Match'}"
+                state="{= ${app>/verify/localMatch} ? 'Success' : 'Warning'}"/>
+            </statuses>
+          </ObjectHeader>
+
+          <Panel headerText="On-Chain Metadata (Label 1447)" visible="{= !!${app>/verify/onChainData}}"
+                 class="sapUiSmallMarginTop">
+            <TextArea value="{app>/verify/onChainData}"
+                      rows="15" width="100%" editable="false"
+                      class="fincaMono"/>
+          </Panel>
+        </Panel>
+      </VBox>
+    </content>
+  </Page>
+</mvc:View>

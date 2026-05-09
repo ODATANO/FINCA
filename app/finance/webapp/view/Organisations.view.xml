@@ -1,0 +1,33 @@
+<mvc:View xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  controllerName="finca.controller.Organisations">
+
+  <Page id="orgPage" title="Organisations">
+    <headerContent>
+      <Button text="Add Organisation" icon="sap-icon://add" press=".onAddOrg" type="Emphasized"/>
+    </headerContent>
+
+    <content>
+      <Table id="orgTable"
+             items="{path: '/Organisations', parameters: {$orderby: 'name'}}"
+             growing="true" growingThreshold="20">
+        <columns>
+          <Column><Text text="Name"/></Column>
+          <Column width="8%"><Text text="Currency"/></Column>
+          <Column width="8%"><Text text="Country"/></Column>
+          <Column width="15%"><Text text="Tax ID"/></Column>
+          <Column><Text text="Wallet Address"/></Column>
+        </columns>
+        <items>
+          <ColumnListItem>
+            <Text text="{name}"/>
+            <Text text="{currencyCode}"/>
+            <Text text="{countryCode}"/>
+            <Text text="{taxIdNumber}"/>
+            <Text text="{= ${walletAddress} ? ${walletAddress}.substring(0, 30) + '...' : '—'}" class="fincaMono"/>
+          </ColumnListItem>
+        </items>
+      </Table>
+    </content>
+  </Page>
+</mvc:View>

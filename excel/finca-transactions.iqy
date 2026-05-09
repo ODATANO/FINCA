@@ -1,0 +1,11 @@
+WEB
+1
+http://localhost:4004/odata/v4/finance/Transactions?$expand=items&$format=json
+
+Selection=EntirePage
+Formatting=None
+PreFormattedTextToColumns=True
+ConsecutiveDelimitersAsOne=True
+SingleBlockTextImport=False
+DisableDateRecognition=False
+DisableRedirections=False

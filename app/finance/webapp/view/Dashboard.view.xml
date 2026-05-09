@@ -1,0 +1,104 @@
+<mvc:View xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:f="sap.f"
+  xmlns:layout="sap.ui.layout"
+  controllerName="finca.controller.Dashboard">
+
+  <Page id="dashboardPage" title="Dashboard" showNavButton="false">
+    <content>
+
+      <!-- ── KPI Tiles ──────────────────────────────────────────── -->
+      <HBox wrap="Wrap" class="sapUiSmallMargin">
+        <f:Card class="sapUiSmallMarginEnd sapUiSmallMarginBottom" width="220px">
+          <f:header>
+            <f:headers.NumericHeader
+              title="Transactions"
+              number="{app>/stats/transactionCount}"
+              subtitle="Total records"
+              state="Good"/>
+          </f:header>
+        </f:Card>
+
+        <f:Card class="sapUiSmallMarginEnd sapUiSmallMarginBottom" width="220px">
+          <f:header>
+            <f:headers.NumericHeader
+              title="Reports"
+              number="{app>/stats/reportCount}"
+              subtitle="Financial reports"
+              state="Good"/>
+          </f:header>
+        </f:Card>
+
+        <f:Card class="sapUiSmallMarginEnd sapUiSmallMarginBottom" width="220px">
+          <f:header>
+            <f:headers.NumericHeader
+              title="Anchored"
+              number="{app>/stats/confirmedCount}"
+              subtitle="On-chain confirmed"
+              state="Good"/>
+          </f:header>
+        </f:Card>
+
+        <f:Card class="sapUiSmallMarginEnd sapUiSmallMarginBottom" width="220px">
+          <f:header>
+            <f:headers.NumericHeader
+              title="Pending"
+              number="{app>/stats/pendingCount}"
+              subtitle="Awaiting confirmation"
+              state="{= ${app>/stats/pendingCount} > 0 ? 'Critical' : 'Good'}"/>
+          </f:header>
+        </f:Card>
+      </HBox>
+
+      <!-- ── Recent Transactions ────────────────────────────────── -->
+      <Panel headerText="Recent Transactions" class="sapUiSmallMargin">
+        <Table id="recentTxTable"
+               items="{path: '/Transactions', parameters: {$top: 10, $orderby: 'createdAt desc', $expand: 'org'}}"
+               growing="true" growingThreshold="10">
+          <columns>
+            <Column><Text text="Number"/></Column>
+            <Column><Text text="Date"/></Column>
+            <Column><Text text="Type"/></Column>
+            <Column><Text text="Organisation"/></Column>
+            <Column><Text text="Status"/></Column>
+            <Column><Text text="Batch"/></Column>
+          </columns>
+          <items>
+            <ColumnListItem type="Navigation" press=".onTxPress">
+              <Text text="{transactionNumber}"/>
+              <Text text="{date}"/>
+              <Text text="{type}"/>
+              <Text text="{org/name}"/>
+              <ObjectStatus text="{status}" state="{= ${status} === 'CONFIRMED' ? 'Success' : ${status} === 'PUBLISHED' ? 'Warning' : ${status} === 'VALIDATED' ? 'Information' : 'None'}"/>
+              <Text text="{batchId}"/>
+            </ColumnListItem>
+          </items>
+        </Table>
+      </Panel>
+
+      <!-- ── Recent Anchors ─────────────────────────────────────── -->
+      <Panel headerText="Recent On-Chain Anchors" class="sapUiSmallMargin">
+        <Table id="recentAnchorTable"
+               items="{path: '/OnChainAnchors', parameters: {$top: 5, $orderby: 'createdAt desc'}}"
+               growing="true" growingThreshold="5">
+          <columns>
+            <Column width="15%"><Text text="Status"/></Column>
+            <Column><Text text="TX Hash"/></Column>
+            <Column width="15%"><Text text="Submitted"/></Column>
+            <Column width="15%"><Text text="Confirmed"/></Column>
+          </columns>
+          <items>
+            <ColumnListItem>
+              <ObjectStatus text="{status}"
+                state="{= ${status} === 'CONFIRMED' ? 'Success' : ${status} === 'SUBMITTED' ? 'Warning' : ${status} === 'FAILED' ? 'Error' : 'None'}"/>
+              <Text text="{= ${txHash} ? ${txHash}.substring(0, 24) + '...' : '—'}" class="fincaMono"/>
+              <Text text="{submittedAt}"/>
+              <Text text="{= ${confirmedAt} || '—'}"/>
+            </ColumnListItem>
+          </items>
+        </Table>
+      </Panel>
+
+    </content>
+  </Page>
+</mvc:View>

@@ -1,0 +1,54 @@
+# ─── CAP / Build artifacts ──────────────────────────────────────────────
+_out/
+gen/
+target/
+node_modules/
+@cds-models/
+
+# CAP cds-typer
+@cds-models
+
+# ─── SQLite (dev DB) ────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# ─── CAP runtime config ─────────────────────────────────────────────────
+connection.properties
+default-*.json
+.cdsrc-private.json
+
+# ─── Secrets ────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ─── Web IDE / App Studio / MTA ─────────────────────────────────────────
+.che/
+.gen/
+*_mta_build_tmp
+*.mtar
+mta_archives/
+
+# ─── Logs ───────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ─── Test / Coverage ────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ─── IDE / OS ───────────────────────────────────────────────────────────
+.DS_Store
+*.iml
+*.flattened-pom.xml
+*.orig
+# .vscode  ← uncomment to ignore VS Code workspace settings
+# .idea
+
+IMPLEMENTATION.MD
+CLAUDE.md
+CAP_PROJECT_GUIDE.md
+.claude/*
+.vscode/*

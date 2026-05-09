@@ -1,0 +1,73 @@
+<mvc:View xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:tnt="sap.tnt"
+  controllerName="finca.controller.App"
+  height="100%">
+
+  <App id="rootApp" height="100%">
+
+    <!-- ── Welcome Screen (wallet gate) ─────────────────────────── -->
+    <Page id="welcomePage" showHeader="false" class="fincaWelcome">
+      <VBox alignItems="Center" justifyContent="Center" class="sapUiLargeMarginTop">
+        <Image src="sap-icon://money-bills" width="64px" class="sapUiMediumMarginBottom"/>
+        <Title text="FINCA" level="H1" class="sapUiSmallMarginBottom"/>
+        <Label text="Financial Data Anchoring on Cardano" class="sapUiSmallMarginBottom sapUiTinyMarginBottom"/>
+        <Text text="Connect your Cardano wallet to begin" class="sapUiSmallMarginBottom"/>
+
+        <Panel headerText="Available Wallets" width="360px" class="sapUiMediumMarginTop">
+          <List id="welcomeWalletList"
+                items="{wallet>/wallets}"
+                mode="SingleSelectMaster"
+                selectionChange=".onWelcomeWalletSelect"
+                noDataText="No CIP-30 wallets detected. Install Nami, Eternl, or Lace.">
+            <CustomListItem type="Active">
+              <HBox alignItems="Center" class="sapUiSmallMargin">
+                <Image src="{wallet>icon}" width="28px" height="28px" class="sapUiSmallMarginEnd"/>
+                <Text text="{wallet>name}" class="sapUiSmallMarginEnd"/>
+              </HBox>
+            </CustomListItem>
+          </List>
+        </Panel>
+
+        <Button text="Continue without wallet (read-only)"
+                type="Transparent"
+                press=".onSkipWallet"
+                class="sapUiMediumMarginTop"/>
+      </VBox>
+    </Page>
+
+    <!-- ── Main App ─────────────────────────────────────────────── -->
+    <tnt:ToolPage id="toolPage">
+      <tnt:header>
+        <tnt:ToolHeader>
+          <Button icon="sap-icon://menu2" press=".onToggleMenu" tooltip="Toggle Menu"/>
+          <Title text="FINCA" class="sapUiSmallMarginBegin"/>
+          <ToolbarSpacer/>
+          <Button id="walletBtn"
+                  text="{= ${wallet>/connected} ? ${wallet>/name} : 'Connect Wallet'}"
+                  icon="{= ${wallet>/connected} ? 'sap-icon://chain-link' : 'sap-icon://disconnected'}"
+                  type="{= ${wallet>/connected} ? 'Success' : 'Default'}"
+                  press=".onWalletPress"/>
+        </tnt:ToolHeader>
+      </tnt:header>
+
+      <tnt:sideContent>
+        <tnt:SideNavigation id="sideNav" selectedKey="dashboard" itemSelect=".onNavSelect">
+          <tnt:NavigationList>
+            <tnt:NavigationListItem text="Dashboard"      icon="sap-icon://home"             key="dashboard"/>
+            <tnt:NavigationListItem text="Transactions"   icon="sap-icon://receipt"          key="transactions"/>
+            <tnt:NavigationListItem text="Reports"        icon="sap-icon://bar-chart"        key="reports"/>
+            <tnt:NavigationListItem text="On-Chain"       icon="sap-icon://chain-link"       key="anchors"/>
+            <tnt:NavigationListItem text="Verify"         icon="sap-icon://accept"           key="verify"/>
+            <tnt:NavigationListItem text="Organisations"  icon="sap-icon://building"         key="organisations"/>
+          </tnt:NavigationList>
+        </tnt:SideNavigation>
+      </tnt:sideContent>
+
+      <tnt:mainContents>
+        <NavContainer id="appNavContainer"/>
+      </tnt:mainContents>
+    </tnt:ToolPage>
+
+  </App>
+</mvc:View>

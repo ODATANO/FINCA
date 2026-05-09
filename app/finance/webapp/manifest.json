@@ -1,0 +1,107 @@
+{
+  "_version": "1.60.0",
+  "sap.app": {
+    "id": "finca",
+    "type": "application",
+    "title": "FINCA — Financial Data Anchoring",
+    "description": "Anchor financial data on Cardano via ODATANO",
+    "applicationVersion": { "version": "1.0.0" },
+    "dataSources": {
+      "financeService": {
+        "uri": "/odata/v4/finance/",
+        "type": "OData",
+        "settings": { "odataVersion": "4.0" }
+      }
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "deviceTypes": { "desktop": true, "tablet": true, "phone": true }
+  },
+  "sap.ui.core": {
+    "css": [{ "uri": "css/style.css" }]
+  },
+  "sap.ui5": {
+    "dependencies": {
+      "minUI5Version": "1.120.0",
+      "libs": {
+        "sap.m": {},
+        "sap.ui.core": {},
+        "sap.ui.layout": {},
+        "sap.tnt": {},
+        "sap.f": {},
+        "sap.ui.table": {}
+      }
+    },
+    "models": {
+      "": {
+        "dataSource": "financeService",
+        "type": "sap.ui.model.odata.v4.ODataModel",
+        "settings": {
+          "synchronizationMode": "None",
+          "operationMode": "Server",
+          "autoExpandSelect": true,
+          "groupId": "$auto"
+        }
+      },
+      "wallet": {
+        "type": "sap.ui.model.json.JSONModel",
+        "settings": {
+          "data": {
+            "connected": false,
+            "connecting": false,
+            "error": "",
+            "name": "",
+            "icon": "",
+            "address": "",
+            "bech32": "",
+            "vkh": "",
+            "wallets": []
+          }
+        }
+      },
+      "app": {
+        "type": "sap.ui.model.json.JSONModel",
+        "settings": {
+          "data": {
+            "orgId": "",
+            "orgName": "",
+            "orgWallet": ""
+          }
+        }
+      }
+    },
+    "rootView": {
+      "viewName": "finca.view.App",
+      "type": "XML",
+      "id": "rootView"
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.m.routing.Router",
+        "type": "View",
+        "viewType": "XML",
+        "viewPath": "finca.view",
+        "controlId": "appNavContainer",
+        "controlAggregation": "pages",
+        "async": true
+      },
+      "routes": [
+        { "name": "dashboard",    "pattern": "",                         "target": "dashboard" },
+        { "name": "transactions", "pattern": "transactions",            "target": "transactions" },
+        { "name": "reports",      "pattern": "reports",                  "target": "reports" },
+        { "name": "anchors",      "pattern": "anchors",                  "target": "anchors" },
+        { "name": "verify",       "pattern": "verify",                   "target": "verify" },
+        { "name": "organisations","pattern": "organisations",            "target": "organisations" }
+      ],
+      "targets": {
+        "dashboard":     { "viewName": "Dashboard",     "viewLevel": 1 },
+        "transactions":  { "viewName": "Transactions",  "viewLevel": 2 },
+        "reports":       { "viewName": "Reports",       "viewLevel": 2 },
+        "anchors":       { "viewName": "Anchors",       "viewLevel": 2 },
+        "verify":        { "viewName": "Verify",        "viewLevel": 2 },
+        "organisations": { "viewName": "Organisations", "viewLevel": 2 }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/x-ms-odc; charset=utf-8">
+<meta name="ProgId" content="ODC.OData">
+<meta name="SourceType" content="OData">
+<title>FINCA OData Feed</title>
+<xml id="docprops">
+<o:DocumentProperties xmlns:o="urn:schemas-microsoft-com:office:office">
+  <o:Name>FINCA OData</o:Name>
+  <o:Description>FINCA Financial Data — OData V4 Feed (label-1447 anchoring service)</o:Description>
+</o:DocumentProperties>
+</xml>
+<xml id="msodc">
+<odc:OfficeDataConnection xmlns:odc="urn:schemas-microsoft-com:office:odc">
+  <odc:Connection odc:Type="OData">
+    <odc:ConnectionString>Provider=Microsoft.Data.OData;Data Source=http://localhost:4004/odata/v4/finance/;Persist Security Info=False;Services=4;</odc:ConnectionString>
+    <odc:CommandType>Default</odc:CommandType>
+    <odc:CommandText>FINCA</odc:CommandText>
+  </odc:Connection>
+</odc:OfficeDataConnection>
+</xml>
+</head>
+</html>

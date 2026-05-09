@@ -1,0 +1,31 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core" xmlns:form="sap.ui.layout.form">
+  <Dialog id="addOrgDialog" title="Add Organisation" draggable="true">
+    <content>
+      <form:SimpleForm editable="true" layout="ResponsiveGridLayout"
+                       labelSpanXL="4" labelSpanL="4" labelSpanM="4"
+                       emptySpanXL="0" emptySpanL="0" emptySpanM="0"
+                       columnsXL="1" columnsL="1" columnsM="1">
+        <Label text="Name" required="true"/>
+        <Input id="orgNameInput" placeholder="Company Name GmbH"/>
+
+        <Label text="Currency (ISO 4217)"/>
+        <Input id="orgCurrencyInput" value="EUR" maxLength="3"/>
+
+        <Label text="Country (ISO 3166)"/>
+        <Input id="orgCountryInput" value="DE" maxLength="2"/>
+
+        <Label text="Tax ID"/>
+        <Input id="orgTaxIdInput" placeholder="DE123456789"/>
+
+        <Label text="Wallet Address (bech32)"/>
+        <Input id="orgWalletInput" placeholder="addr_test1q..." width="100%"/>
+      </form:SimpleForm>
+    </content>
+    <beginButton>
+      <Button text="Create" type="Emphasized" press=".onAddOrgConfirm"/>
+    </beginButton>
+    <endButton>
+      <Button text="Cancel" press=".onAddOrgCancel"/>
+    </endButton>
+  </Dialog>
+</core:FragmentDefinition>

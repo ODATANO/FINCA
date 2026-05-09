@@ -1,0 +1,92 @@
+<mvc:View xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  controllerName="finca.controller.Anchors">
+
+  <Page id="anchorsPage" title="On-Chain Anchors">
+    <headerContent>
+      <Button text="Check Pending" icon="sap-icon://refresh" press=".onCheckPending" type="Emphasized"/>
+    </headerContent>
+
+    <content>
+      <IconTabBar id="anchorTabs" selectedKey="all">
+        <items>
+          <IconTabFilter key="all" text="All" icon="sap-icon://chain-link">
+            <Table id="anchorTable"
+                   items="{path: '/OnChainAnchors', parameters: {$orderby: 'createdAt desc'}}"
+                   growing="true" growingThreshold="25">
+              <columns>
+                <Column width="12%"><Text text="Status"/></Column>
+                <Column><Text text="TX Hash"/></Column>
+                <Column width="10%"><Text text="Label"/></Column>
+                <Column width="8%"><Text text="Slot"/></Column>
+                <Column width="8%"><Text text="Block"/></Column>
+                <Column width="14%"><Text text="Submitted"/></Column>
+                <Column width="14%"><Text text="Confirmed"/></Column>
+                <Column width="8%"><Text text="Actions"/></Column>
+              </columns>
+              <items>
+                <ColumnListItem>
+                  <ObjectStatus text="{status}"
+                    state="{= ${status} === 'CONFIRMED' ? 'Success' : ${status} === 'SUBMITTED' ? 'Warning' : ${status} === 'FAILED' ? 'Error' : 'None'}"
+                    icon="{= ${status} === 'CONFIRMED' ? 'sap-icon://accept' : ${status} === 'SUBMITTED' ? 'sap-icon://pending' : ${status} === 'FAILED' ? 'sap-icon://error' : 'sap-icon://edit'}"/>
+                  <Text text="{= ${txHash} ? ${txHash}.substring(0, 20) + '...' : '—'}" class="fincaMono"/>
+                  <ObjectNumber number="{metadataLabel}"/>
+                  <Text text="{= ${slot} || '—'}"/>
+                  <Text text="{= ${blockNumber} || '—'}"/>
+                  <Text text="{submittedAt}"/>
+                  <Text text="{= ${confirmedAt} || '—'}"/>
+                  <HBox>
+                    <Button icon="sap-icon://refresh" type="Transparent" press=".onRetry"
+                            visible="{= ${status} === 'FAILED'}" tooltip="Retry"/>
+                    <Button icon="sap-icon://inspect" type="Transparent" press=".onViewTx"
+                            visible="{= !!${txHash}}" tooltip="View on Explorer"/>
+                  </HBox>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </IconTabFilter>
+
+          <IconTabFilter key="pending" text="Pending" icon="sap-icon://pending" iconColor="Critical">
+            <Table items="{path: '/OnChainAnchors', parameters: {$orderby: 'createdAt desc', $filter: 'status eq \'PENDING\' or status eq \'SUBMITTED\''}}"
+                   growing="true">
+              <columns>
+                <Column width="15%"><Text text="Status"/></Column>
+                <Column><Text text="TX Hash"/></Column>
+                <Column><Text text="Build ID"/></Column>
+                <Column width="15%"><Text text="Submitted"/></Column>
+              </columns>
+              <items>
+                <ColumnListItem>
+                  <ObjectStatus text="{status}" state="{= ${status} === 'SUBMITTED' ? 'Warning' : 'None'}"/>
+                  <Text text="{= ${txHash} ? ${txHash}.substring(0, 24) + '...' : '—'}" class="fincaMono"/>
+                  <Text text="{= ${buildId} ? ${buildId}.substring(0, 16) + '...' : '—'}" class="fincaMono"/>
+                  <Text text="{submittedAt}"/>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </IconTabFilter>
+
+          <IconTabFilter key="confirmed" text="Confirmed" icon="sap-icon://accept" iconColor="Positive">
+            <Table items="{path: '/OnChainAnchors', parameters: {$orderby: 'confirmedAt desc', $filter: 'status eq \'CONFIRMED\''}}"
+                   growing="true">
+              <columns>
+                <Column><Text text="TX Hash"/></Column>
+                <Column width="10%"><Text text="Slot"/></Column>
+                <Column width="10%"><Text text="Block"/></Column>
+                <Column width="15%"><Text text="Confirmed"/></Column>
+              </columns>
+              <items>
+                <ColumnListItem>
+                  <Text text="{= ${txHash}.substring(0, 32) + '...'}" class="fincaMono"/>
+                  <ObjectNumber number="{slot}"/>
+                  <ObjectNumber number="{blockNumber}"/>
+                  <Text text="{confirmedAt}"/>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </IconTabFilter>
+        </items>
+      </IconTabBar>
+    </content>
+  </Page>
+</mvc:View>

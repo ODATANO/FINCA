@@ -1,0 +1,105 @@
+<mvc:View xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  controllerName="finca.controller.Transactions">
+
+  <Page id="txPage" title="Transactions">
+    <headerContent>
+      <Button text="Validate Batch" icon="sap-icon://validateicon" press=".onValidateBatch" type="Emphasized"/>
+      <Button text="Publish Batch" icon="sap-icon://upload-to-cloud" press=".onPublishBatch" type="Attention"/>
+    </headerContent>
+
+    <content>
+      <IconTabBar id="txTabs" select=".onTabSelect" selectedKey="all">
+        <items>
+          <IconTabFilter key="all" text="All" count="{app>/stats/transactionCount}" icon="sap-icon://list">
+            <Table id="txTableAll"
+                   items="{path: '/Transactions', parameters: {$orderby: 'createdAt desc', $expand: 'org,items'}}"
+                   mode="MultiSelect"
+                   growing="true" growingThreshold="25">
+              <headerToolbar>
+                <Toolbar>
+                  <SearchField width="300px" placeholder="Search by number, batch, type..." liveChange=".onSearchTx"/>
+                  <ToolbarSpacer/>
+                  <Label text="Batch:"/>
+                  <Input id="batchInput" width="120px" placeholder="e.g. BATCH-001"/>
+                </Toolbar>
+              </headerToolbar>
+              <columns>
+                <Column width="12%"><Text text="Number"/></Column>
+                <Column width="10%"><Text text="Date"/></Column>
+                <Column width="10%"><Text text="Type"/></Column>
+                <Column><Text text="Description"/></Column>
+                <Column width="10%"><Text text="Batch"/></Column>
+                <Column width="8%"><Text text="Items"/></Column>
+                <Column width="10%"><Text text="Status"/></Column>
+              </columns>
+              <items>
+                <ColumnListItem>
+                  <Text text="{transactionNumber}"/>
+                  <Text text="{date}"/>
+                  <Text text="{type}"/>
+                  <Text text="{description}" maxLines="1"/>
+                  <Text text="{batchId}"/>
+                  <ObjectNumber number="{= ${items} ? ${items}.length : 0}" unit="lines"/>
+                  <ObjectStatus text="{status}"
+                    state="{= ${status} === 'CONFIRMED' ? 'Success' : ${status} === 'PUBLISHED' ? 'Warning' : ${status} === 'VALIDATED' ? 'Information' : 'None'}"/>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </IconTabFilter>
+
+          <IconTabFilter key="draft" text="Draft" icon="sap-icon://edit" iconColor="Default">
+            <Table id="txTableDraft"
+                   items="{path: '/Transactions', parameters: {$orderby: 'createdAt desc', $filter: 'status eq \'DRAFT\''}}"
+                   growing="true" growingThreshold="25">
+              <columns>
+                <Column><Text text="Number"/></Column>
+                <Column><Text text="Date"/></Column>
+                <Column><Text text="Type"/></Column>
+                <Column><Text text="Description"/></Column>
+                <Column><Text text="Batch"/></Column>
+                <Column><Text text="Status"/></Column>
+              </columns>
+              <items>
+                <ColumnListItem>
+                  <Text text="{transactionNumber}"/>
+                  <Text text="{date}"/>
+                  <Text text="{type}"/>
+                  <Text text="{description}" maxLines="1"/>
+                  <Text text="{batchId}"/>
+                  <ObjectStatus text="{status}" state="None"/>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </IconTabFilter>
+
+          <IconTabFilter key="published" text="On-Chain" icon="sap-icon://chain-link" iconColor="Positive">
+            <Table id="txTableOnChain"
+                   items="{path: '/Transactions', parameters: {$orderby: 'createdAt desc', $filter: 'status eq \'CONFIRMED\' or status eq \'PUBLISHED\''}}"
+                   growing="true" growingThreshold="25">
+              <columns>
+                <Column><Text text="Number"/></Column>
+                <Column><Text text="Date"/></Column>
+                <Column><Text text="Type"/></Column>
+                <Column><Text text="Description"/></Column>
+                <Column><Text text="Batch"/></Column>
+                <Column><Text text="Status"/></Column>
+              </columns>
+              <items>
+                <ColumnListItem>
+                  <Text text="{transactionNumber}"/>
+                  <Text text="{date}"/>
+                  <Text text="{type}"/>
+                  <Text text="{description}" maxLines="1"/>
+                  <Text text="{batchId}"/>
+                  <ObjectStatus text="{status}"
+                    state="{= ${status} === 'CONFIRMED' ? 'Success' : 'Warning'}"/>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </IconTabFilter>
+        </items>
+      </IconTabBar>
+    </content>
+  </Page>
+</mvc:View>

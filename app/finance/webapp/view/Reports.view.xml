@@ -1,0 +1,87 @@
+<mvc:View xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  controllerName="finca.controller.Reports">
+
+  <Page id="reportsPage" title="Financial Reports">
+    <headerContent>
+      <Button text="Publish Report" icon="sap-icon://upload-to-cloud" press=".onPublishReport" type="Attention"/>
+    </headerContent>
+
+    <content>
+      <IconTabBar id="reportTabs" selectedKey="all">
+        <items>
+          <IconTabFilter key="all" text="All Reports" icon="sap-icon://bar-chart">
+            <Table id="reportTable"
+                   items="{path: '/FinancialReports', parameters: {$orderby: 'createdAt desc', $expand: 'org,period'}}"
+                   mode="SingleSelectLeft"
+                   growing="true" growingThreshold="20">
+              <columns>
+                <Column><Text text="Organisation"/></Column>
+                <Column width="15%"><Text text="Type"/></Column>
+                <Column width="8%"><Text text="Year"/></Column>
+                <Column width="12%"><Text text="Interval"/></Column>
+                <Column width="10%"><Text text="Mode"/></Column>
+                <Column width="10%"><Text text="Version"/></Column>
+                <Column width="12%"><Text text="Status"/></Column>
+              </columns>
+              <items>
+                <ColumnListItem>
+                  <Text text="{org/name}"/>
+                  <Text text="{= ${subType} === 'BALANCE_SHEET' ? 'Balance Sheet' : 'Income Statement'}"/>
+                  <ObjectNumber number="{year}"/>
+                  <Text text="{interval}"/>
+                  <Text text="{mode}"/>
+                  <Text text="v{version}"/>
+                  <ObjectStatus text="{status}"
+                    state="{= ${status} === 'CONFIRMED' ? 'Success' : ${status} === 'PUBLISHED' ? 'Warning' : ${status} === 'APPROVED' ? 'Information' : 'None'}"/>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </IconTabFilter>
+
+          <IconTabFilter key="bs" text="Balance Sheets" icon="sap-icon://capital-projects">
+            <Table items="{path: '/FinancialReports', parameters: {$orderby: 'year desc', $expand: 'org', $filter: 'subType eq \'BALANCE_SHEET\''}}"
+                   growing="true">
+              <columns>
+                <Column><Text text="Organisation"/></Column>
+                <Column><Text text="Year"/></Column>
+                <Column><Text text="Period"/></Column>
+                <Column><Text text="Status"/></Column>
+              </columns>
+              <items>
+                <ColumnListItem>
+                  <Text text="{org/name}"/>
+                  <ObjectNumber number="{year}"/>
+                  <Text text="{interval}"/>
+                  <ObjectStatus text="{status}"
+                    state="{= ${status} === 'CONFIRMED' ? 'Success' : ${status} === 'PUBLISHED' ? 'Warning' : 'None'}"/>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </IconTabFilter>
+
+          <IconTabFilter key="is" text="Income Statements" icon="sap-icon://line-chart">
+            <Table items="{path: '/FinancialReports', parameters: {$orderby: 'year desc', $expand: 'org', $filter: 'subType eq \'INCOME_STATEMENT\''}}"
+                   growing="true">
+              <columns>
+                <Column><Text text="Organisation"/></Column>
+                <Column><Text text="Year"/></Column>
+                <Column><Text text="Period"/></Column>
+                <Column><Text text="Status"/></Column>
+              </columns>
+              <items>
+                <ColumnListItem>
+                  <Text text="{org/name}"/>
+                  <ObjectNumber number="{year}"/>
+                  <Text text="{interval}"/>
+                  <ObjectStatus text="{status}"
+                    state="{= ${status} === 'CONFIRMED' ? 'Success' : ${status} === 'PUBLISHED' ? 'Warning' : 'None'}"/>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </IconTabFilter>
+        </items>
+      </IconTabBar>
+    </content>
+  </Page>
+</mvc:View>

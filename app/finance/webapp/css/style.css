@@ -1,0 +1,22 @@
+/* ── FINCA Custom Styles ─────────────────────────────────────────────────── */
+
+/* Welcome Screen */
+.fincaWelcome {
+  background: linear-gradient(135deg, #1a237e 0%, #283593 50%, #0d47a1 100%);
+}
+.fincaWelcome .sapMTitle,
+.fincaWelcome .sapMLabel,
+.fincaWelcome .sapMText {
+  color: #ffffff !important;
+}
+
+/* Monospace for hashes, addresses, CBOR */
+.fincaMono {
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace !important;
+  font-size: 0.85rem;
+}
+
+/* Card tiles on dashboard */
+.sapFCard {
+  min-height: 100px;
+}

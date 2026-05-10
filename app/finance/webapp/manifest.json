@@ -66,7 +66,13 @@
           "data": {
             "orgId": "",
             "orgName": "",
-            "orgWallet": ""
+            "orgWallet": "",
+            "stats": {
+              "transactionCount": 0,
+              "reportCount": 0,
+              "confirmedCount": 0,
+              "pendingCount": 0
+            }
           }
         }
       }

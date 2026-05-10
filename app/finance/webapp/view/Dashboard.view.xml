@@ -1,17 +1,17 @@
 <mvc:View xmlns:mvc="sap.ui.core.mvc"
   xmlns="sap.m"
   xmlns:f="sap.f"
-  xmlns:layout="sap.ui.layout"
+  xmlns:card="sap.f.cards"
   controllerName="finca.controller.Dashboard">
 
   <Page id="dashboardPage" title="Dashboard" showNavButton="false">
     <content>
 
-      <!-- ── KPI Tiles ──────────────────────────────────────────── -->
+      <!-- KPI Tiles -->
       <HBox wrap="Wrap" class="sapUiSmallMargin">
         <f:Card class="sapUiSmallMarginEnd sapUiSmallMarginBottom" width="220px">
           <f:header>
-            <f:headers.NumericHeader
+            <card:NumericHeader
               title="Transactions"
               number="{app>/stats/transactionCount}"
               subtitle="Total records"
@@ -21,7 +21,7 @@
 
         <f:Card class="sapUiSmallMarginEnd sapUiSmallMarginBottom" width="220px">
           <f:header>
-            <f:headers.NumericHeader
+            <card:NumericHeader
               title="Reports"
               number="{app>/stats/reportCount}"
               subtitle="Financial reports"
@@ -31,7 +31,7 @@
 
         <f:Card class="sapUiSmallMarginEnd sapUiSmallMarginBottom" width="220px">
           <f:header>
-            <f:headers.NumericHeader
+            <card:NumericHeader
               title="Anchored"
               number="{app>/stats/confirmedCount}"
               subtitle="On-chain confirmed"
@@ -41,7 +41,7 @@
 
         <f:Card class="sapUiSmallMarginEnd sapUiSmallMarginBottom" width="220px">
           <f:header>
-            <f:headers.NumericHeader
+            <card:NumericHeader
               title="Pending"
               number="{app>/stats/pendingCount}"
               subtitle="Awaiting confirmation"
@@ -50,7 +50,7 @@
         </f:Card>
       </HBox>
 
-      <!-- ── Recent Transactions ────────────────────────────────── -->
+      <!-- Recent Transactions -->
       <Panel headerText="Recent Transactions" class="sapUiSmallMargin">
         <Table id="recentTxTable"
                items="{path: '/Transactions', parameters: {$top: 10, $orderby: 'createdAt desc', $expand: 'org'}}"
@@ -76,7 +76,7 @@
         </Table>
       </Panel>
 
-      <!-- ── Recent Anchors ─────────────────────────────────────── -->
+      <!-- Recent Anchors -->
       <Panel headerText="Recent On-Chain Anchors" class="sapUiSmallMargin">
         <Table id="recentAnchorTable"
                items="{path: '/OnChainAnchors', parameters: {$top: 5, $orderby: 'createdAt desc'}}"

@@ -1,7 +1,8 @@
 sap.ui.define([
   "sap/ui/core/mvc/Controller",
-  "sap/ui/model/json/JSONModel"
-], function (Controller, JSONModel) {
+  "sap/ui/model/Filter",
+  "sap/ui/model/FilterOperator"
+], function (Controller, Filter, FilterOperator) {
   "use strict";
 
   return Controller.extend("finca.controller.Dashboard", {
@@ -18,19 +19,11 @@ sap.ui.define([
       var oModel = this.getView().getModel();
       var oAppModel = this.getOwnerComponent().getModel("app");
 
-      // Load counts via OData $count
-      var aPromises = [
-        oModel.bindList("/Transactions").requestContexts(0, 0).then(function () { return 0; }),
-        oModel.bindList("/FinancialReports").requestContexts(0, 0).then(function () { return 0; }),
-        oModel.bindList("/OnChainAnchors", undefined, undefined, undefined).requestContexts(0, 0).then(function () { return 0; })
-      ];
-
-      // Simple approach: read small sets and count
       Promise.all([
         this._count(oModel, "/Transactions"),
         this._count(oModel, "/FinancialReports"),
-        this._countFiltered(oModel, "/OnChainAnchors", "status", "CONFIRMED"),
-        this._countFiltered(oModel, "/OnChainAnchors", "status", "SUBMITTED")
+        this._count(oModel, "/OnChainAnchors", new Filter("status", FilterOperator.EQ, "CONFIRMED")),
+        this._count(oModel, "/OnChainAnchors", new Filter("status", FilterOperator.EQ, "SUBMITTED"))
       ]).then(function (aCounts) {
         oAppModel.setProperty("/stats", {
           transactionCount: aCounts[0],
@@ -41,26 +34,14 @@ sap.ui.define([
       });
     },
 
-    _count: function (oModel, sPath) {
-      return new Promise(function (resolve) {
-        var oBinding = oModel.bindList(sPath);
-        oBinding.requestContexts(0, 9999).then(function (aCtx) {
-          resolve(aCtx.length);
-        }).catch(function () { resolve(0); });
-      });
+    _count: function (oModel, sPath, oFilter) {
+      var oBinding = oModel.bindList(sPath, undefined, undefined, oFilter ? [oFilter] : undefined, { $count: true });
+      return oBinding.getHeaderContext().requestProperty("$count")
+        .then(function (n) { return n || 0; })
+        .catch(function () { return 0; });
     },
 
-    _countFiltered: function (oModel, sPath, sField, sValue) {
-      return new Promise(function (resolve) {
-        var oFilter = new sap.ui.model.Filter(sField, "EQ", sValue);
-        var oBinding = oModel.bindList(sPath, undefined, undefined, [oFilter]);
-        oBinding.requestContexts(0, 9999).then(function (aCtx) {
-          resolve(aCtx.length);
-        }).catch(function () { resolve(0); });
-      });
-    },
-
-    onTxPress: function (oEvent) {
+    onTxPress: function () {
       this.getOwnerComponent().getRouter().navTo("transactions");
     }
   });

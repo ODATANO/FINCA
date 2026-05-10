@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Financial Data Anchoring on Cardano via ODATANO",
   "dependencies": {
-    "@odatano/core": "^0.3",
+    "@odatano/core": "^1.7.7",
     "@sap/cds": "^9",
     "express": "^4"
   },
@@ -22,7 +22,7 @@
   },
   "scripts": {
     "start": "cds-serve",
-    "deploy": "node scripts/deploy-db.js",
+    "deploy": "cds deploy --to sqlite:db.sqlite",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
@@ -38,6 +38,9 @@
         "credentials": {
           "url": "db.sqlite"
         }
+      },
+      "auth": {
+        "kind": "dummy"
       },
       "odatano-core": {
         "network": "preview",

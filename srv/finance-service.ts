@@ -14,6 +14,12 @@ import {
 } from './lib/metadata-builder';
 import * as chain from './lib/chain-adapter';
 import { sumDecimalsExact } from './lib/decimal';
+import {
+  Organisations,
+  Transactions,
+  FinancialReports,
+  OnChainAnchors
+} from '#cds-models/finca';
 
 const LOG = cds.log('finance-service');
 
@@ -45,7 +51,6 @@ class FinanceService extends ApplicationService {
 
   private async _handlePublishTransactions(req: Request) {
     const { batchId, walletAddress } = req.data;
-    const { Transactions, Organisations, OnChainAnchors } = this.entities;
 
     // 1. Load transactions with items
     const txs = await SELECT.from(Transactions)
@@ -118,7 +123,6 @@ class FinanceService extends ApplicationService {
 
   private async _handlePublishReport(req: Request) {
     const { reportId, walletAddress } = req.data;
-    const { FinancialReports, Organisations, OnChainAnchors } = this.entities;
 
     // 1. Load report with entries
     const report = await SELECT.one.from(FinancialReports)
@@ -131,7 +135,7 @@ class FinanceService extends ApplicationService {
     if (!report) {
       return req.reject(404, 'Report not found');
     }
-    if (!['DRAFT', 'APPROVED'].includes(report.status)) {
+    if (!report.status || !['DRAFT', 'APPROVED'].includes(report.status)) {
       return req.reject(400, `Report status '${report.status}' is not publishable`);
     }
 
@@ -183,7 +187,6 @@ class FinanceService extends ApplicationService {
 
   private async _handleSubmitSigned(req: Request) {
     const { buildId, signedTxCbor } = req.data;
-    const { OnChainAnchors, Transactions, FinancialReports } = this.entities;
 
     // Find anchor by buildId
     const anchor = await SELECT.one.from(OnChainAnchors).where({ buildId });
@@ -228,8 +231,6 @@ class FinanceService extends ApplicationService {
   }
 
   private async _pollPendingAnchors(): Promise<{ updated: number }> {
-    const { OnChainAnchors, Transactions, FinancialReports } = this.entities;
-
     const pending = await SELECT.from(OnChainAnchors)
       .where({ status: 'SUBMITTED' })
       .and('txHash is not null');
@@ -237,6 +238,7 @@ class FinanceService extends ApplicationService {
     let updated = 0;
 
     for (const anchor of pending) {
+      if (!anchor.txHash) continue;  // SQL filter guarantees this, narrow for TS
       try {
         const status = await chain.getTxStatus(anchor.txHash);
 
@@ -271,7 +273,6 @@ class FinanceService extends ApplicationService {
 
   private async _handleRetryFailed(req: Request) {
     const { anchorId } = req.data;
-    const { OnChainAnchors, Transactions, FinancialReports, Organisations } = this.entities;
 
     const anchor = await SELECT.one.from(OnChainAnchors).where({ ID: anchorId });
     if (!anchor) {
@@ -326,7 +327,6 @@ class FinanceService extends ApplicationService {
 
   private async _handleValidateBatch(req: Request) {
     const { batchId } = req.data;
-    const { Transactions } = this.entities;
 
     const txs = await SELECT.from(Transactions)
       .where({ batchId })
@@ -389,7 +389,6 @@ class FinanceService extends ApplicationService {
     }
 
     // Find local anchor by txHash
-    const { OnChainAnchors } = this.entities;
     const anchor = await SELECT.one.from(OnChainAnchors).where({ txHash });
 
     return {
@@ -403,7 +402,6 @@ class FinanceService extends ApplicationService {
 
   private async _handleVerifyReport(req: Request) {
     const { reportId } = req.data;
-    const { OnChainAnchors } = this.entities;
 
     const anchor = await SELECT.one.from(OnChainAnchors)
       .where({ report_ID: reportId, status: 'CONFIRMED' });

@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "Financial Data Anchoring on Cardano via ODATANO",
   "dependencies": {
+    "@emurgo/cardano-message-signing-nodejs": "^1.1.0",
     "@odatano/core": "^1.7.7",
     "@sap/cds": "^9",
-    "express": "^4"
+    "express": "^4",
+    "jose": "^5.10.0"
   },
   "devDependencies": {
     "@cap-js/cds-test": "^1.0.1",
@@ -40,7 +42,8 @@
         }
       },
       "auth": {
-        "kind": "dummy"
+        "kind": "custom",
+        "impl": "./srv/auth/jwt-middleware"
       },
       "odatano-core": {
         "network": "preview",

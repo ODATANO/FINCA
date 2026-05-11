@@ -23,12 +23,47 @@ import {
 
 const LOG = cds.log('finance-service');
 
+/**
+ * Ensures the caller's wallet owns the given org. Returns the org row when
+ * authorized, rejects the request with 403 otherwise.
+ */
+async function _requireOrg(req: Request, orgId: string | null | undefined) {
+  const userId = req.user?.id;
+  if (!userId || userId === 'anonymous') {
+    return req.reject(401, 'Sign in required');
+  }
+  if (!orgId) return req.reject(404, 'Organisation not linked');
+  const org = await SELECT.one.from(Organisations).where({ ID: orgId });
+  if (!org) return req.reject(404, 'Organisation not found');
+  if (org.walletAddress !== userId) {
+    return req.reject(403, 'Resource does not belong to your wallet');
+  }
+  return org;
+}
+
+/**
+ * Resolves an anchor's owning org via its linked transaction or report,
+ * then enforces the connected wallet matches.
+ */
+async function _requireAnchorOwnership(req: Request, anchor: any) {
+  let orgId: string | null | undefined;
+  if (anchor.transaction_ID) {
+    const tx = await SELECT.one.from(Transactions).where({ ID: anchor.transaction_ID });
+    orgId = tx?.org_ID;
+  } else if (anchor.report_ID) {
+    const report = await SELECT.one.from(FinancialReports).where({ ID: anchor.report_ID });
+    orgId = report?.org_ID;
+  }
+  return _requireOrg(req, orgId);
+}
+
 class FinanceService extends ApplicationService {
   private pollingInterval: ReturnType<typeof setInterval> | null = null;
 
   async init() {
     // ─── Action Handlers ─────────────────────────────────────────────────
 
+    this.on('ProvisionOrg', this._handleProvisionOrg.bind(this));
     this.on('PublishTransactions', this._handlePublishTransactions.bind(this));
     this.on('PublishReport', this._handlePublishReport.bind(this));
     this.on('SubmitSigned', this._handleSubmitSigned.bind(this));
@@ -47,10 +82,49 @@ class FinanceService extends ApplicationService {
     await super.init();
   }
 
+  // ─── ProvisionOrg (Onboarding) ──────────────────────────────────────────
+
+  private async _handleProvisionOrg(req: Request) {
+    const userId = req.user?.id;
+    if (!userId || userId === 'anonymous') {
+      return req.reject(401, 'Sign in required');
+    }
+
+    // Already provisioned?
+    const existing = await SELECT.one.from(Organisations).where({ walletAddress: userId });
+    if (existing) {
+      return {
+        ID: existing.ID,
+        name: existing.name ?? '',
+        walletAddress: existing.walletAddress ?? '',
+        created: false
+      };
+    }
+
+    const { name, currencyCode, countryCode } = req.data;
+    const orgId = randomUUID();
+    const orgName = (name && name.trim()) || `Wallet ${userId.slice(-8)}`;
+    await INSERT.into(Organisations).entries({
+      ID: orgId,
+      name: orgName,
+      currencyCode: currencyCode || 'EUR',
+      countryCode: countryCode || 'DE',
+      walletAddress: userId
+    });
+
+    LOG.info(`Provisioned new org '${orgId}' for wallet ${userId}`);
+    return {
+      ID: orgId,
+      name: orgName,
+      walletAddress: userId,
+      created: true
+    };
+  }
+
   // ─── PublishTransactions ─────────────────────────────────────────────────
 
   private async _handlePublishTransactions(req: Request) {
-    const { batchId, walletAddress } = req.data;
+    const { batchId } = req.data;
 
     // 1. Load transactions with items
     const txs = await SELECT.from(Transactions)
@@ -70,18 +144,9 @@ class FinanceService extends ApplicationService {
       return req.reject(400, `${invalidTxs.length} transaction(s) not in publishable status`);
     }
 
-    // 2. Load organisation
-    const orgId = txs[0].org_ID;
-    const org = await SELECT.one.from(Organisations).where({ ID: orgId });
-    if (!org) {
-      return req.reject(404, 'Organisation not found');
-    }
-
-    // Use connected wallet address (from frontend), fall back to org's stored address
-    const senderAddress = walletAddress || org.walletAddress;
-    if (!senderAddress) {
-      return req.reject(400, 'No wallet address provided and organisation has none configured');
-    }
+    // 2. Ownership check + load org
+    const org = await _requireOrg(req, txs[0].org_ID);
+    const senderAddress = org.walletAddress as string;
 
     // 3. Build 1447 metadata
     const metadata = buildTransactionMetadata(txs, org);
@@ -95,12 +160,19 @@ class FinanceService extends ApplicationService {
     // 4. Build unsigned TX via ODATANO (using connected wallet address)
     const buildResult = await chain.buildMetadataTx(metadata, senderAddress);
 
-    // 5. Create OnChainAnchor record (UUID generated up-front for consistent return value)
+    // 5. Create signing request — required for CIP-30 witness-set submit
+    const signingRequestId = await chain.createSigningRequest(
+      buildResult.buildId,
+      `FINCA batch ${batchId}`
+    );
+
+    // 6. Create OnChainAnchor record (UUID generated up-front for consistent return value)
     const anchorId = randomUUID();
     const anchor = {
       ID: anchorId,
       transaction_ID: txs[0].ID,  // Link to first TX in batch
       buildId: buildResult.buildId,
+      signingRequestId,
       unsignedCbor: buildResult.unsignedCbor,
       txBodyHash: buildResult.txBodyHash,
       status: 'PENDING',
@@ -122,7 +194,7 @@ class FinanceService extends ApplicationService {
   // ─── PublishReport ───────────────────────────────────────────────────────
 
   private async _handlePublishReport(req: Request) {
-    const { reportId, walletAddress } = req.data;
+    const { reportId } = req.data;
 
     // 1. Load report with entries
     const report = await SELECT.one.from(FinancialReports)
@@ -139,16 +211,9 @@ class FinanceService extends ApplicationService {
       return req.reject(400, `Report status '${report.status}' is not publishable`);
     }
 
-    // 2. Load organisation
-    const org = await SELECT.one.from(Organisations).where({ ID: report.org_ID });
-    if (!org) {
-      return req.reject(404, 'Organisation not found');
-    }
-
-    const senderAddress = walletAddress || org.walletAddress;
-    if (!senderAddress) {
-      return req.reject(400, 'No wallet address provided and organisation has none configured');
-    }
+    // 2. Ownership check + load org
+    const org = await _requireOrg(req, report.org_ID);
+    const senderAddress = org.walletAddress as string;
 
     // 3. Build 1447 metadata
     const metadata = buildReportMetadata(report, report.entries || [], org);
@@ -160,12 +225,19 @@ class FinanceService extends ApplicationService {
     // 4. Build unsigned TX (using connected wallet address)
     const buildResult = await chain.buildMetadataTx(metadata, senderAddress);
 
-    // 5. Create anchor (UUID generated up-front for consistent return value)
+    // 5. Create signing request — required for CIP-30 witness-set submit
+    const signingRequestId = await chain.createSigningRequest(
+      buildResult.buildId,
+      `FINCA report ${reportId}`
+    );
+
+    // 6. Create anchor (UUID generated up-front for consistent return value)
     const anchorId = randomUUID();
     const anchor = {
       ID: anchorId,
       report_ID: reportId,
       buildId: buildResult.buildId,
+      signingRequestId,
       unsignedCbor: buildResult.unsignedCbor,
       txBodyHash: buildResult.txBodyHash,
       status: 'PENDING',
@@ -196,9 +268,17 @@ class FinanceService extends ApplicationService {
     if (anchor.status !== 'PENDING') {
       return req.reject(400, `Anchor status '${anchor.status}' — expected PENDING`);
     }
+    if (!anchor.signingRequestId) {
+      return req.reject(400, `Anchor '${anchor.ID}' has no signing request — re-publish to create one`);
+    }
 
-    // Submit via ODATANO
-    const result = await chain.submitSigned(buildId, signedTxCbor);
+    // Ownership check via linked tx or report
+    await _requireAnchorOwnership(req, anchor);
+
+    // Submit via ODATANO CardanoSignService (handles CIP-30 witness-set auto-merge).
+    // No address passed: connected wallet at publish-time may differ from org.walletAddress,
+    // and ODATANO's verifyOrThrow on the signature is the real security gate.
+    const result = await chain.submitSigned(anchor.signingRequestId, signedTxCbor);
 
     // Update anchor
     await UPDATE(OnChainAnchors).where({ ID: anchor.ID }).set({
@@ -282,6 +362,9 @@ class FinanceService extends ApplicationService {
       return req.reject(400, `Anchor status '${anchor.status}' — expected FAILED`);
     }
 
+    // Ownership check
+    await _requireAnchorOwnership(req, anchor);
+
     // Rebuild: find the original data and re-publish
     let metadata: any;
     let walletAddress: string;
@@ -307,9 +390,14 @@ class FinanceService extends ApplicationService {
     }
 
     const buildResult = await chain.buildMetadataTx(metadata, walletAddress);
+    const signingRequestId = await chain.createSigningRequest(
+      buildResult.buildId,
+      `FINCA retry ${anchorId}`
+    );
 
     await UPDATE(OnChainAnchors).where({ ID: anchorId }).set({
       buildId: buildResult.buildId,
+      signingRequestId,
       unsignedCbor: buildResult.unsignedCbor,
       txBodyHash: buildResult.txBodyHash,
       status: 'PENDING',
@@ -335,6 +423,9 @@ class FinanceService extends ApplicationService {
     if (!txs || txs.length === 0) {
       return req.reject(404, `No transactions found for batch '${batchId}'`);
     }
+
+    // Ownership check
+    await _requireOrg(req, txs[0].org_ID);
 
     const errors: string[] = [];
 
@@ -379,6 +470,10 @@ class FinanceService extends ApplicationService {
 
   private async _handleVerifyTransaction(req: Request) {
     const { txHash } = req.data;
+    const userId = req.user?.id;
+    if (!userId || userId === 'anonymous') {
+      return req.reject(401, 'Sign in required');
+    }
 
     // Get on-chain metadata
     const onChainMetadata = await chain.getOnChainMetadata(txHash);
@@ -388,13 +483,20 @@ class FinanceService extends ApplicationService {
       return { verified: false, onChainData: JSON.stringify(onChainMetadata), localMatch: false };
     }
 
-    // Find local anchor by txHash
+    // localMatch only true if anchor belongs to caller's wallet
     const anchor = await SELECT.one.from(OnChainAnchors).where({ txHash });
+    let ownedLocally = false;
+    if (anchor) {
+      try {
+        await _requireAnchorOwnership(req, anchor);
+        ownedLocally = true;
+      } catch { /* not owned — keep localMatch=false */ }
+    }
 
     return {
       verified: true,
       onChainData: label1447.payload,
-      localMatch: !!anchor
+      localMatch: ownedLocally
     };
   }
 
@@ -402,6 +504,11 @@ class FinanceService extends ApplicationService {
 
   private async _handleVerifyReport(req: Request) {
     const { reportId } = req.data;
+
+    // First load report and check ownership (avoid leaking existence of others' reports)
+    const report = await SELECT.one.from(FinancialReports).where({ ID: reportId });
+    if (!report) return req.reject(404, 'Report not found');
+    await _requireOrg(req, report.org_ID);
 
     const anchor = await SELECT.one.from(OnChainAnchors)
       .where({ report_ID: reportId, status: 'CONFIRMED' });

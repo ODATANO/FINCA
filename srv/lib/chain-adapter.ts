@@ -68,19 +68,43 @@ export async function buildMetadataTx(
 }
 
 /**
- * Submit a signed transaction to the blockchain.
+ * Create a signing request for a build (required before CIP-30 witness-set submit).
+ * Idempotent — ODATANO returns the existing pending request if one already exists.
+ */
+export async function createSigningRequest(
+  buildId: string,
+  message: string
+): Promise<string> {
+  const signSrv = await cds.connect.to('CardanoSignService');
+
+  const result = await signSrv.send('CreateSigningRequest', { buildId, message });
+
+  LOG.info('Signing request created. ID:', result.id, 'for build:', buildId);
+  return result.id;
+}
+
+/**
+ * Submit a signed transaction to the blockchain via CardanoSignService.
+ *
+ * Accepts EITHER a full signed Transaction CBOR or just a TransactionWitnessSet
+ * (CIP-30 wallets return the latter). ODATANO auto-detects and merges with the
+ * unsigned tx stored on the signing request before submission.
  */
 export async function submitSigned(
-  buildId: string,
-  signedTxCbor: string
+  signingRequestId: string,
+  signedTxCbor: string,
+  walletAddress?: string
 ): Promise<SubmitResult> {
-  const txSrv = await cds.connect.to('CardanoTransactionService');
+  const signSrv = await cds.connect.to('CardanoSignService');
 
-  LOG.info('Submitting signed TX for build:', buildId);
+  LOG.info('Submitting signed TX for signing request:', signingRequestId);
 
-  const result = await txSrv.send('SubmitTransaction', {
-    buildId,
-    signedTxCbor
+  const result = await signSrv.send('SubmitVerifiedTransaction', {
+    signingRequestId,
+    signedTxCbor,
+    signerType: 'browser-wallet',
+    signerInfo: 'CIP-30',
+    address: walletAddress
   });
 
   LOG.info('Submitted. TX Hash:', result.txHash, 'Status:', result.status);

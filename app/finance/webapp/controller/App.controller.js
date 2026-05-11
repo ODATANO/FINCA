@@ -25,20 +25,28 @@ sap.ui.define([
       var oWalletModel = this.getOwnerComponent().getModel("wallet");
       oWalletModel.setProperty("/connecting", true);
 
+      var oComponent = this.getOwnerComponent();
       CardanoWallet.connect(sWalletId).then(function (oResult) {
-        oWalletModel.setProperty("/connected", true);
-        oWalletModel.setProperty("/connecting", false);
         oWalletModel.setProperty("/name", oResult.name);
         oWalletModel.setProperty("/bech32", oResult.bech32);
         oWalletModel.setProperty("/vkh", oResult.vkh);
         oWalletModel.setProperty("/address", oResult.address);
-
-        MessageToast.show("Connected to " + oResult.name);
+        MessageToast.show("Signing in with " + oResult.name + "...");
+        return CardanoWallet.signIn();
+      }).then(function () {
+        oWalletModel.setProperty("/connected", true);
+        oWalletModel.setProperty("/connecting", false);
+        oComponent.applyAuth();
+        MessageToast.show("Signed in");
+        return oComponent.provisionOrg();
+      }.bind(this)).then(function () {
         this._navToApp();
       }.bind(this)).catch(function (err) {
+        CardanoWallet.disconnect();
+        oWalletModel.setProperty("/connected", false);
         oWalletModel.setProperty("/connecting", false);
-        oWalletModel.setProperty("/error", err.message || "Connection failed");
-        MessageBox.error("Wallet connection failed: " + (err.message || err));
+        oWalletModel.setProperty("/error", err.message || "Sign-in failed");
+        MessageBox.error("Sign-in failed: " + (err.message || err));
       });
     },
 
@@ -72,6 +80,7 @@ sap.ui.define([
               oWalletModel.setProperty("/name", "");
               oWalletModel.setProperty("/bech32", "");
               oWalletModel.setProperty("/vkh", "");
+              this.getOwnerComponent().applyAuth();
               MessageToast.show("Wallet disconnected");
               this._navToWelcome();
             }

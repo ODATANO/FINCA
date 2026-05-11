@@ -13,6 +13,7 @@ jest.mock('../srv/lib/chain-adapter', () => ({
     txBodyHash: 'cc00dd',
     fee: '180000'
   })),
+  createSigningRequest: jest.fn(async () => '22222222-2222-4222-8222-222222222222'),
   submitSigned: jest.fn(async () => ({
     txHash: 'tx-hash-deadbeef',
     status: 'SUBMITTED'
@@ -84,7 +85,7 @@ describe('FinanceService — integration', () => {
   describe('PublishTransactions', () => {
     test('returns valid UUID anchorId (not buildId fallback)', async () => {
       const res = await POST('/odata/v4/finance/PublishTransactions', {
-        batchId: 'B-OK', walletAddress: 'addr_test1xxx'
+        batchId: 'B-OK'
       });
       expect(res.data.anchorId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
       expect(res.data.buildId).toBe('11111111-1111-4111-8111-111111111111');
@@ -93,7 +94,7 @@ describe('FinanceService — integration', () => {
 
     test('persists OnChainAnchor with the returned anchorId', async () => {
       const res = await POST('/odata/v4/finance/PublishTransactions', {
-        batchId: 'B-OK', walletAddress: 'addr_test1xxx'
+        batchId: 'B-OK'
       });
       const { OnChainAnchors } = cds.entities('finca');
       const anchor = await SELECT.one.from(OnChainAnchors).where({ ID: res.data.anchorId });

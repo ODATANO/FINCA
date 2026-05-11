@@ -23,6 +23,7 @@ default-*.json
 .env
 .env.local
 .env.*.local
+.jwt-secret
 
 # ─── Web IDE / App Studio / MTA ─────────────────────────────────────────
 .che/

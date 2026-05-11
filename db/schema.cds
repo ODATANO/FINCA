@@ -91,6 +91,16 @@ entity ReportEntries : cuid {
   sortOrder   : Integer;
 }
 
+// ─── Auth Nonces (CIP-30 Sign-in) ────────────────────────────────────────────
+
+entity AuthNonces {
+  key nonce     : String(64);              // 32-byte hex random
+  address       : String(200);             // Bech32 address that requested it
+  createdAt     : Timestamp;
+  expiresAt     : Timestamp;
+  consumedAt    : Timestamp;               // NULL = unused, set after successful verify (one-time-use)
+}
+
 // ─── On-Chain Anchoring Records ──────────────────────────────────────────────
 
 entity OnChainAnchors : cuid, managed {
@@ -105,8 +115,9 @@ entity OnChainAnchors : cuid, managed {
   confirmedAt   : Timestamp;
   errorMessage  : String(500);
   // ODATANO Build/Signing References
-  buildId       : String(100);             // ODATANO Build-ID (UUID)
-  unsignedCbor  : LargeString;
-  signedCbor    : LargeString;
-  txBodyHash    : String(64);
+  buildId           : String(100);          // ODATANO Build-ID (UUID)
+  signingRequestId  : String(100);          // ODATANO Signing-Request-ID (UUID) — needed for CIP-30 witness-set submit
+  unsignedCbor      : LargeString;
+  signedCbor        : LargeString;
+  txBodyHash        : String(64);
 }

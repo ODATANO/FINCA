@@ -12,6 +12,9 @@ sap.ui.define([], function () {
   var _addressHex = "";
   var _addressBech32 = "";
   var _vkh = "";
+  var _jwt = "";
+  var _jwtExpiresAt = 0;
+  var JWT_STORAGE_KEY = "finca.jwt";
 
   var KNOWN_WALLETS = ["nami", "eternl", "lace", "flint", "typhon", "gerowallet", "nufi", "begin", "vespr"];
 
@@ -176,13 +179,79 @@ sap.ui.define([], function () {
       _addressHex = "";
       _addressBech32 = "";
       _vkh = "";
+      _jwt = "";
+      _jwtExpiresAt = 0;
+      try { window.sessionStorage.removeItem(JWT_STORAGE_KEY); } catch (e) { /* ignore */ }
     },
 
     isConnected: function () { return _api !== null; },
+    isSignedIn: function () {
+      return !!_jwt && _jwtExpiresAt > Date.now();
+    },
     getName: function () { return _name; },
     getAddress: function () { return _addressBech32; },
     getAddressHex: function () { return _addressHex; },
     getVkh: function () { return _vkh; },
+    getJwt: function () { return _jwt; },
+
+    /**
+     * CIP-30 sign-in: fetch a server nonce, sign it with the wallet,
+     * exchange the signature for a JWT, persist to sessionStorage.
+     * @returns {Promise<{address, expiresAt}>}
+     */
+    signIn: function () {
+      if (!_api) return Promise.reject(new Error("Wallet not connected"));
+      var address = _addressBech32;
+      var addressHex = _addressHex;
+
+      // Restore cached JWT for this address if still valid
+      try {
+        var cached = JSON.parse(window.sessionStorage.getItem(JWT_STORAGE_KEY) || "null");
+        if (cached && cached.address === address && cached.expiresAt > Date.now()) {
+          _jwt = cached.jwt;
+          _jwtExpiresAt = cached.expiresAt;
+          return Promise.resolve({ address: address, expiresAt: new Date(cached.expiresAt).toISOString() });
+        }
+      } catch (e) { /* ignore */ }
+
+      return fetch("/auth/Nonce", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: address })
+      }).then(function (res) {
+        if (!res.ok) throw new Error("Nonce request failed: " + res.status);
+        return res.json();
+      }).then(function (oNonce) {
+        var payloadHex = Array.from(new TextEncoder().encode(oNonce.payload))
+          .map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+        return _api.signData(addressHex, payloadHex).then(function (oSig) {
+          return { nonce: oNonce.nonce, signature: oSig.signature, key: oSig.key };
+        });
+      }).then(function (oSigned) {
+        return fetch("/auth/Verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            address: address,
+            nonce: oSigned.nonce,
+            signature: oSigned.signature,
+            key: oSigned.key
+          })
+        }).then(function (res) {
+          if (!res.ok) return res.text().then(function (t) { throw new Error("Sign-in failed: " + t); });
+          return res.json();
+        });
+      }).then(function (oResult) {
+        _jwt = oResult.jwt;
+        _jwtExpiresAt = new Date(oResult.expiresAt).getTime();
+        try {
+          window.sessionStorage.setItem(JWT_STORAGE_KEY, JSON.stringify({
+            address: address, jwt: _jwt, expiresAt: _jwtExpiresAt
+          }));
+        } catch (e) { /* ignore */ }
+        return { address: address, expiresAt: oResult.expiresAt };
+      });
+    },
 
     /**
      * Sign a transaction CBOR with the connected wallet.

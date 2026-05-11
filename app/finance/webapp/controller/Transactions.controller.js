@@ -147,7 +147,6 @@ sap.ui.define([
       MessageToast.show("Building metadata transaction...");
       var oBuild = oModel.bindContext("/PublishTransactions(...)");
       oBuild.setParameter("batchId", sBatchId);
-      oBuild.setParameter("walletAddress", CardanoWallet.getAddress());
 
       oBuild.execute().then(function () {
         var oResult = oBuild.getBoundContext().getObject();

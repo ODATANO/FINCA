@@ -24,3 +24,4 @@ require('ts-node').register({
 
 const cds = require('@sap/cds');
 cds.env.requires.db = { kind: 'sqlite', credentials: { url: ':memory:' } };
+cds.env.requires.auth = { kind: 'custom', impl: './test/auth-stub' };

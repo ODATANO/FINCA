@@ -1,0 +1,97 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core" xmlns:form="sap.ui.layout.form">
+  <Dialog id="txDialog"
+          title="{= ${dialog>/mode} === 'create' ? 'Add Transaction' : (${dialog>/canEdit} ? 'Edit Transaction' : 'View Transaction (on-chain)') }"
+          draggable="true"
+          contentWidth="900px"
+          contentHeight="600px">
+    <content>
+      <MessageStrip visible="{= !${dialog>/canEdit} &amp;&amp; ${dialog>/mode} === 'edit' }"
+                    type="Information" showIcon="true" class="sapUiSmallMarginBottom"
+                    text="This transaction is anchored on-chain and cannot be modified."/>
+
+      <form:SimpleForm editable="true" layout="ResponsiveGridLayout"
+                       labelSpanXL="3" labelSpanL="3" labelSpanM="4"
+                       columnsXL="2" columnsL="2" columnsM="1">
+        <Label text="Organisation" required="true"/>
+        <Select selectedKey="{org_ID}"
+                items="{path: 'org>/orgs'}"
+                enabled="{= ${dialog>/mode} === 'create' }">
+          <core:Item key="{org>ID}" text="{org>name}" xmlns:core="sap.ui.core"/>
+        </Select>
+
+        <Label text="Period"/>
+        <Select selectedKey="{period_ID}"
+                items="{path: 'org>/periods'}"
+                forceSelection="false"
+                enabled="{dialog>/canEdit}">
+          <core:Item key="{org>ID}" text="{org>period}" xmlns:core="sap.ui.core"/>
+        </Select>
+
+        <Label text="Number"/>
+        <Input value="{transactionNumber}" placeholder="T-0001" editable="{dialog>/canEdit}"/>
+
+        <Label text="Batch ID"/>
+        <Input value="{batchId}" placeholder="BATCH-001" editable="{dialog>/canEdit}"/>
+
+        <Label text="Type"/>
+        <Select selectedKey="{type}" forceSelection="false" enabled="{dialog>/canEdit}">
+          <core:Item key="JOURNAL" text="Journal" xmlns:core="sap.ui.core"/>
+          <core:Item key="PAYMENT" text="Payment" xmlns:core="sap.ui.core"/>
+          <core:Item key="INVOICE" text="Invoice" xmlns:core="sap.ui.core"/>
+          <core:Item key="CREDIT_NOTE" text="Credit Note" xmlns:core="sap.ui.core"/>
+        </Select>
+
+        <Label text="Date" required="true"/>
+        <DatePicker value="{date}" valueFormat="yyyy-MM-dd" displayFormat="yyyy-MM-dd"
+                    editable="{dialog>/canEdit}"/>
+
+        <Label text="Description"/>
+        <TextArea value="{description}" rows="2" editable="{dialog>/canEdit}"/>
+
+        <Label text="Status"/>
+        <ObjectStatus text="{status}"
+          state="{= ${status} === 'CONFIRMED' ? 'Success' : ${status} === 'PUBLISHED' ? 'Warning' : ${status} === 'VALIDATED' ? 'Information' : 'None'}"/>
+      </form:SimpleForm>
+
+      <Toolbar visible="{= ${dialog>/mode} === 'edit' }">
+        <Title text="Line Items"/>
+        <ToolbarSpacer/>
+        <Button text="Add Line" icon="sap-icon://add" press=".onAddItem"
+                visible="{dialog>/canEdit}"/>
+      </Toolbar>
+
+      <Table id="txItemsTable" visible="{= ${dialog>/mode} === 'edit' }"
+             items="{path: 'items', parameters: {$$ownRequest: true, $orderby: 'lineNumber'}}">
+        <columns>
+          <Column width="6%"><Text text="#"/></Column>
+          <Column width="14%"><Text text="Account"/></Column>
+          <Column><Text text="Account Name"/></Column>
+          <Column width="15%" hAlign="End"><Text text="Amount"/></Column>
+          <Column width="10%"><Text text="Currency"/></Column>
+          <Column width="14%"><Text text="Cost Center"/></Column>
+          <Column width="10%"/>
+        </columns>
+        <items>
+          <ColumnListItem>
+            <Input value="{lineNumber}" type="Number" editable="{dialog>/canEdit}"/>
+            <Input value="{accountCode}" editable="{dialog>/canEdit}"/>
+            <Input value="{accountName}" editable="{dialog>/canEdit}"/>
+            <Input value="{amount}" textAlign="End" editable="{dialog>/canEdit}"/>
+            <Input value="{currencyCode}" maxLength="3" editable="{dialog>/canEdit}"/>
+            <Input value="{costCenterCode}" editable="{dialog>/canEdit}"/>
+            <Button icon="sap-icon://delete" type="Transparent" press=".onRemoveItem"
+                    visible="{dialog>/canEdit}"/>
+          </ColumnListItem>
+        </items>
+      </Table>
+    </content>
+    <beginButton>
+      <Button text="{= ${dialog>/mode} === 'edit' ? 'Save' : 'Create' }"
+              type="Emphasized" press=".onTxConfirm"
+              visible="{dialog>/canEdit}"/>
+    </beginButton>
+    <endButton>
+      <Button text="{= ${dialog>/canEdit} ? 'Cancel' : 'Close' }" press=".onTxCancel"/>
+    </endButton>
+  </Dialog>
+</core:FragmentDefinition>

@@ -1,0 +1,36 @@
+<mvc:View xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  controllerName="finca.controller.AccountingPeriods">
+
+  <Page id="periodsPage" title="Accounting Periods">
+    <headerContent>
+      <Button text="Add Period" icon="sap-icon://add" press=".onAddPeriod" type="Emphasized"/>
+    </headerContent>
+
+    <content>
+      <Table id="periodTable"
+             items="{path: '/AccountingPeriods', parameters: {$orderby: 'year desc,period', $expand: 'org'}}"
+             growing="true" growingThreshold="25">
+        <columns>
+          <Column><Text text="Organisation"/></Column>
+          <Column width="15%"><Text text="Period"/></Column>
+          <Column width="10%"><Text text="Year"/></Column>
+          <Column width="15%"><Text text="Start"/></Column>
+          <Column width="15%"><Text text="End"/></Column>
+          <Column width="12%"><Text text="Status"/></Column>
+        </columns>
+        <items>
+          <ColumnListItem type="Navigation" press=".onPeriodPress">
+            <Text text="{org/name}"/>
+            <Text text="{period}"/>
+            <Text text="{ path: 'year', type: 'sap.ui.model.odata.type.Int32', formatOptions: { groupingEnabled: false } }"/>
+            <Text text="{startDate}"/>
+            <Text text="{endDate}"/>
+            <ObjectStatus text="{status}"
+              state="{= ${status} === 'CLOSED' ? 'Warning' : ${status} === 'PUBLISHED' ? 'Success' : 'None'}"/>
+          </ColumnListItem>
+        </items>
+      </Table>
+    </content>
+  </Page>
+</mvc:View>

@@ -4,15 +4,33 @@ sap.ui.define([
   "sap/m/MessageBox",
   "sap/ui/model/Filter",
   "sap/ui/model/FilterOperator",
+  "sap/ui/core/Fragment",
+  "sap/ui/model/json/JSONModel",
   "finca/model/CardanoWallet"
-], function (Controller, MessageToast, MessageBox, Filter, FilterOperator, CardanoWallet) {
+], function (Controller, MessageToast, MessageBox, Filter, FilterOperator, Fragment, JSONModel, CardanoWallet) {
   "use strict";
 
   return Controller.extend("finca.controller.Reports", {
 
     onInit: function () {
+      this.getView().setModel(new JSONModel({ mode: "create", canEdit: true }), "dialog");
+      this.getView().setModel(new JSONModel({ orgs: [], periods: [] }), "org");
+      this._loadOrgs();
+
       var oWalletModel = this.getOwnerComponent().getModel("wallet");
       oWalletModel.attachPropertyChange(this._onWalletChanged.bind(this));
+    },
+
+    _loadOrgs: function () {
+      var oModel = this.getOwnerComponent().getModel();
+      oModel.bindList("/Organisations").requestContexts(0, 100).then(function (a) {
+        this.getView().getModel("org").setProperty("/orgs",
+          a.map(function (c) { return c.getObject(); }));
+      }.bind(this));
+      oModel.bindList("/AccountingPeriods").requestContexts(0, 200).then(function (a) {
+        this.getView().getModel("org").setProperty("/periods",
+          a.map(function (c) { return c.getObject(); }));
+      }.bind(this));
     },
 
     _onWalletChanged: function () {
@@ -90,6 +108,108 @@ sap.ui.define([
         } else {
           MessageBox.error("Publish failed: " + (err.message || err));
         }
+      });
+    },
+
+    // ── CRUD: Create / Edit Dialog ─────────────────────────────
+
+    _loadDialog: function () {
+      if (!this._pDialog) {
+        this._pDialog = Fragment.load({
+          id: this.getView().getId(),
+          name: "finca.fragment.ReportDialog",
+          controller: this
+        }).then(function (oDialog) {
+          this.getView().addDependent(oDialog);
+          return oDialog;
+        }.bind(this));
+      }
+      return this._pDialog;
+    },
+
+    _isOnChain: function (sStatus) {
+      return sStatus === "PUBLISHED" || sStatus === "CONFIRMED";
+    },
+
+    onAddReport: function () {
+      var oBinding = this.byId("reportTable").getBinding("items");
+      var aOrgs = this.getView().getModel("org").getProperty("/orgs") || [];
+      if (!aOrgs.length) {
+        MessageBox.warning("Create an organisation first.");
+        return;
+      }
+      var iYear = new Date().getFullYear();
+      this._oCreateCtx = oBinding.create({
+        org_ID: aOrgs[0].ID,
+        subType: "BALANCE_SHEET",
+        year: iYear,
+        interval: "ANNUAL",
+        mode: "ACTUAL",
+        version: "1.0",
+        status: "DRAFT"
+      }, true);
+      this.getView().getModel("dialog").setData({ mode: "create", canEdit: true });
+      this._loadDialog().then(function (oDialog) {
+        oDialog.setBindingContext(this._oCreateCtx);
+        oDialog.open();
+      }.bind(this));
+    },
+
+    onReportPress: function (oEvent) {
+      var oCtx = oEvent.getSource().getBindingContext();
+      if (!oCtx) return;
+      this._oCreateCtx = null;
+      var sStatus = oCtx.getProperty("status");
+      this.getView().getModel("dialog").setData({
+        mode: "edit",
+        canEdit: !this._isOnChain(sStatus)
+      });
+      this._loadDialog().then(function (oDialog) {
+        oDialog.setBindingContext(oCtx);
+        oDialog.open();
+      });
+    },
+
+    onReportConfirm: function () {
+      var oModel = this.getView().getModel();
+      var bCreate = this.getView().getModel("dialog").getProperty("/mode") === "create";
+      oModel.submitBatch("$auto").then(function () {
+        MessageToast.show(bCreate ? "Report created" : "Changes saved");
+      }).catch(function (err) {
+        MessageBox.error("Save failed: " + (err.message || err));
+      });
+      this._pDialog.then(function (d) { d.close(); });
+    },
+
+    onReportCancel: function () {
+      var oModel = this.getView().getModel();
+      if (this._oCreateCtx) {
+        this._oCreateCtx.delete("$auto").catch(function () { /* ignore */ });
+        this._oCreateCtx = null;
+      } else {
+        oModel.resetChanges("$auto");
+      }
+      this._pDialog.then(function (d) { d.close(); });
+    },
+
+    onAddEntry: function () {
+      var oTable = this.byId("reportEntriesTable");
+      var oBinding = oTable && oTable.getBinding("items");
+      if (!oBinding) return;
+      oBinding.create({
+        category: "ASSETS",
+        subCategory: "",
+        lineItem: "",
+        amount: "0.00",
+        sortOrder: (oBinding.getLength() || 0) + 1
+      }, true);
+    },
+
+    onRemoveEntry: function (oEvent) {
+      var oCtx = oEvent.getSource().getBindingContext();
+      if (!oCtx) return;
+      oCtx.delete("$auto").catch(function (err) {
+        MessageBox.error("Delete failed: " + (err.message || err));
       });
     }
   });

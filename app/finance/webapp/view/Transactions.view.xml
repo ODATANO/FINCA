@@ -4,6 +4,7 @@
 
   <Page id="txPage" title="Transactions">
     <headerContent>
+      <Button text="Add Transaction" icon="sap-icon://add" press=".onAddTx"/>
       <Button text="Validate Batch" icon="sap-icon://validateicon" press=".onValidateBatch" type="Emphasized"/>
       <Button text="Publish Batch" icon="sap-icon://upload-to-cloud" press=".onPublishBatch" type="Attention"/>
     </headerContent>
@@ -34,7 +35,7 @@
                 <Column width="10%"><Text text="Status"/></Column>
               </columns>
               <items>
-                <ColumnListItem>
+                <ColumnListItem type="Navigation" press=".onTxPress">
                   <Text text="{transactionNumber}"/>
                   <Text text="{date}"/>
                   <Text text="{type}"/>
@@ -61,7 +62,7 @@
                 <Column><Text text="Status"/></Column>
               </columns>
               <items>
-                <ColumnListItem>
+                <ColumnListItem type="Navigation" press=".onTxPress">
                   <Text text="{transactionNumber}"/>
                   <Text text="{date}"/>
                   <Text text="{type}"/>
@@ -86,7 +87,7 @@
                 <Column><Text text="Status"/></Column>
               </columns>
               <items>
-                <ColumnListItem>
+                <ColumnListItem type="Navigation" press=".onTxPress">
                   <Text text="{transactionNumber}"/>
                   <Text text="{date}"/>
                   <Text text="{type}"/>

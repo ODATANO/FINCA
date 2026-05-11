@@ -1,0 +1,45 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core" xmlns:form="sap.ui.layout.form">
+  <Dialog id="periodDialog"
+          title="{= ${dialog>/mode} === 'edit' ? 'Edit Period' : 'Add Period' }"
+          draggable="true"
+          contentWidth="500px">
+    <content>
+      <form:SimpleForm editable="true" layout="ResponsiveGridLayout"
+                       labelSpanXL="4" labelSpanL="4" labelSpanM="4"
+                       columnsXL="1" columnsL="1" columnsM="1">
+        <Label text="Organisation" required="true"/>
+        <Select selectedKey="{org_ID}"
+                items="{path: 'org>/orgs'}"
+                enabled="{= ${dialog>/mode} === 'create' }">
+          <core:Item key="{org>ID}" text="{org>name}" xmlns:core="sap.ui.core"/>
+        </Select>
+
+        <Label text="Period Label" required="true"/>
+        <Input value="{period}" placeholder="2025-Q4 or 2025-01"/>
+
+        <Label text="Year" required="true"/>
+        <Input value="{ path: 'year', type: 'sap.ui.model.odata.type.Int32', formatOptions: { groupingEnabled: false } }"/>
+
+        <Label text="Start Date" required="true"/>
+        <DatePicker value="{startDate}" valueFormat="yyyy-MM-dd" displayFormat="yyyy-MM-dd"/>
+
+        <Label text="End Date" required="true"/>
+        <DatePicker value="{endDate}" valueFormat="yyyy-MM-dd" displayFormat="yyyy-MM-dd"/>
+
+        <Label text="Status"/>
+        <Select selectedKey="{status}">
+          <core:Item key="OPEN" text="Open" xmlns:core="sap.ui.core"/>
+          <core:Item key="CLOSED" text="Closed" xmlns:core="sap.ui.core"/>
+          <core:Item key="PUBLISHED" text="Published" xmlns:core="sap.ui.core"/>
+        </Select>
+      </form:SimpleForm>
+    </content>
+    <beginButton>
+      <Button text="{= ${dialog>/mode} === 'edit' ? 'Save' : 'Create' }"
+              type="Emphasized" press=".onPeriodConfirm"/>
+    </beginButton>
+    <endButton>
+      <Button text="Cancel" press=".onPeriodCancel"/>
+    </endButton>
+  </Dialog>
+</core:FragmentDefinition>

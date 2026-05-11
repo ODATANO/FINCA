@@ -1,0 +1,107 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core" xmlns:form="sap.ui.layout.form">
+  <Dialog id="reportDialog"
+          title="{= ${dialog>/mode} === 'create' ? 'Add Report' : (${dialog>/canEdit} ? 'Edit Report' : 'View Report (on-chain)') }"
+          draggable="true"
+          contentWidth="900px"
+          contentHeight="600px">
+    <content>
+      <MessageStrip visible="{= !${dialog>/canEdit} &amp;&amp; ${dialog>/mode} === 'edit' }"
+                    type="Information" showIcon="true" class="sapUiSmallMarginBottom"
+                    text="This report is anchored on-chain and cannot be modified."/>
+
+      <form:SimpleForm editable="true" layout="ResponsiveGridLayout"
+                       labelSpanXL="3" labelSpanL="3" labelSpanM="4"
+                       columnsXL="2" columnsL="2" columnsM="1">
+        <Label text="Organisation" required="true"/>
+        <Select selectedKey="{org_ID}"
+                items="{path: 'org>/orgs'}"
+                enabled="{= ${dialog>/mode} === 'create' }">
+          <core:Item key="{org>ID}" text="{org>name}" xmlns:core="sap.ui.core"/>
+        </Select>
+
+        <Label text="Period"/>
+        <Select selectedKey="{period_ID}"
+                items="{path: 'org>/periods'}"
+                forceSelection="false"
+                enabled="{dialog>/canEdit}">
+          <core:Item key="{org>ID}" text="{org>period}" xmlns:core="sap.ui.core"/>
+        </Select>
+
+        <Label text="Sub-Type" required="true"/>
+        <Select selectedKey="{subType}" enabled="{dialog>/canEdit}">
+          <core:Item key="BALANCE_SHEET" text="Balance Sheet" xmlns:core="sap.ui.core"/>
+          <core:Item key="INCOME_STATEMENT" text="Income Statement" xmlns:core="sap.ui.core"/>
+        </Select>
+
+        <Label text="Year" required="true"/>
+        <Input value="{ path: 'year', type: 'sap.ui.model.odata.type.Int32', formatOptions: { groupingEnabled: false } }"
+               editable="{dialog>/canEdit}"/>
+
+        <Label text="Interval"/>
+        <Select selectedKey="{interval}" enabled="{dialog>/canEdit}">
+          <core:Item key="ANNUAL" text="Annual" xmlns:core="sap.ui.core"/>
+          <core:Item key="QUARTERLY" text="Quarterly" xmlns:core="sap.ui.core"/>
+          <core:Item key="MONTHLY" text="Monthly" xmlns:core="sap.ui.core"/>
+        </Select>
+
+        <Label text="Mode"/>
+        <Select selectedKey="{mode}" enabled="{dialog>/canEdit}">
+          <core:Item key="ACTUAL" text="Actual" xmlns:core="sap.ui.core"/>
+          <core:Item key="BUDGET" text="Budget" xmlns:core="sap.ui.core"/>
+          <core:Item key="FORECAST" text="Forecast" xmlns:core="sap.ui.core"/>
+        </Select>
+
+        <Label text="Version"/>
+        <Input value="{version}" editable="{dialog>/canEdit}"/>
+
+        <Label text="Status"/>
+        <ObjectStatus text="{status}"
+          state="{= ${status} === 'CONFIRMED' ? 'Success' : ${status} === 'PUBLISHED' ? 'Warning' : ${status} === 'APPROVED' ? 'Information' : 'None'}"/>
+      </form:SimpleForm>
+
+      <Toolbar visible="{= ${dialog>/mode} === 'edit' }">
+        <Title text="Report Entries"/>
+        <ToolbarSpacer/>
+        <Button text="Add Entry" icon="sap-icon://add" press=".onAddEntry"
+                visible="{dialog>/canEdit}"/>
+      </Toolbar>
+
+      <Table id="reportEntriesTable" visible="{= ${dialog>/mode} === 'edit' }"
+             items="{path: 'entries', parameters: {$$ownRequest: true, $orderby: 'sortOrder'}}">
+        <columns>
+          <Column width="14%"><Text text="Category"/></Column>
+          <Column width="18%"><Text text="Sub-Category"/></Column>
+          <Column><Text text="Line Item"/></Column>
+          <Column width="15%" hAlign="End"><Text text="Amount"/></Column>
+          <Column width="10%"><Text text="Sort"/></Column>
+          <Column width="8%"/>
+        </columns>
+        <items>
+          <ColumnListItem>
+            <Select selectedKey="{category}" enabled="{dialog>/canEdit}">
+              <core:Item key="ASSETS" text="Assets" xmlns:core="sap.ui.core"/>
+              <core:Item key="LIABILITIES" text="Liabilities" xmlns:core="sap.ui.core"/>
+              <core:Item key="CAPITAL" text="Capital" xmlns:core="sap.ui.core"/>
+              <core:Item key="REVENUE" text="Revenue" xmlns:core="sap.ui.core"/>
+              <core:Item key="EXPENSES" text="Expenses" xmlns:core="sap.ui.core"/>
+            </Select>
+            <Input value="{subCategory}" editable="{dialog>/canEdit}"/>
+            <Input value="{lineItem}" editable="{dialog>/canEdit}"/>
+            <Input value="{amount}" textAlign="End" editable="{dialog>/canEdit}"/>
+            <Input value="{sortOrder}" type="Number" editable="{dialog>/canEdit}"/>
+            <Button icon="sap-icon://delete" type="Transparent" press=".onRemoveEntry"
+                    visible="{dialog>/canEdit}"/>
+          </ColumnListItem>
+        </items>
+      </Table>
+    </content>
+    <beginButton>
+      <Button text="{= ${dialog>/mode} === 'edit' ? 'Save' : 'Create' }"
+              type="Emphasized" press=".onReportConfirm"
+              visible="{dialog>/canEdit}"/>
+    </beginButton>
+    <endButton>
+      <Button text="{= ${dialog>/canEdit} ? 'Cancel' : 'Close' }" press=".onReportCancel"/>
+    </endButton>
+  </Dialog>
+</core:FragmentDefinition>

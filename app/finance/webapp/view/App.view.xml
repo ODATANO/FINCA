@@ -60,6 +60,7 @@
             <tnt:NavigationListItem text="On-Chain"       icon="sap-icon://chain-link"       key="anchors"/>
             <tnt:NavigationListItem text="Verify"         icon="sap-icon://accept"           key="verify"/>
             <tnt:NavigationListItem text="Organisations"  icon="sap-icon://building"         key="organisations"/>
+            <tnt:NavigationListItem text="Periods"        icon="sap-icon://calendar"         key="periods"/>
           </tnt:NavigationList>
         </tnt:SideNavigation>
       </tnt:sideContent>

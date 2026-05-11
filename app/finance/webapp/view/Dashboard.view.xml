@@ -1,59 +1,54 @@
 <mvc:View xmlns:mvc="sap.ui.core.mvc"
   xmlns="sap.m"
-  xmlns:f="sap.f"
-  xmlns:card="sap.f.cards"
+  xmlns:l="sap.ui.layout"
   controllerName="finca.controller.Dashboard">
 
   <Page id="dashboardPage" title="Dashboard" showNavButton="false">
     <content>
 
-      <!-- KPI Tiles -->
-      <HBox wrap="Wrap" class="sapUiSmallMargin">
-        <f:Card class="sapUiSmallMarginEnd sapUiSmallMarginBottom" width="220px">
-          <f:header>
-            <card:NumericHeader
-              title="Transactions"
-              number="{app>/stats/transactionCount}"
-              subtitle="Total records"
-              state="Good"/>
-          </f:header>
-        </f:Card>
+      <!-- KPI Tiles (pure sap.m) -->
+      <HBox wrap="Wrap" class="sapUiSmallMargin" alignItems="Stretch">
+        <Panel class="sapUiTinyMarginEnd sapUiTinyMarginBottom" width="200px">
+          <VBox class="sapUiSmallMargin" alignItems="Start">
+            <Text text="Transactions" class="sapUiTinyMarginBottom"/>
+            <ObjectNumber number="{app>/stats/transactionCount}" unit="total" emphasized="true" state="Information"/>
+          </VBox>
+        </Panel>
 
-        <f:Card class="sapUiSmallMarginEnd sapUiSmallMarginBottom" width="220px">
-          <f:header>
-            <card:NumericHeader
-              title="Reports"
-              number="{app>/stats/reportCount}"
-              subtitle="Financial reports"
-              state="Good"/>
-          </f:header>
-        </f:Card>
+        <Panel class="sapUiTinyMarginEnd sapUiTinyMarginBottom" width="200px">
+          <VBox class="sapUiSmallMargin" alignItems="Start">
+            <Text text="Reports" class="sapUiTinyMarginBottom"/>
+            <ObjectNumber number="{app>/stats/reportCount}" unit="total" emphasized="true" state="Information"/>
+          </VBox>
+        </Panel>
 
-        <f:Card class="sapUiSmallMarginEnd sapUiSmallMarginBottom" width="220px">
-          <f:header>
-            <card:NumericHeader
-              title="Anchored"
-              number="{app>/stats/confirmedCount}"
-              subtitle="On-chain confirmed"
-              state="Good"/>
-          </f:header>
-        </f:Card>
+        <Panel class="sapUiTinyMarginEnd sapUiTinyMarginBottom" width="200px">
+          <VBox class="sapUiSmallMargin" alignItems="Start">
+            <Text text="On-Chain Confirmed" class="sapUiTinyMarginBottom"/>
+            <ObjectNumber number="{app>/stats/confirmedCount}" unit="anchors" emphasized="true" state="Success"/>
+          </VBox>
+        </Panel>
 
-        <f:Card class="sapUiSmallMarginEnd sapUiSmallMarginBottom" width="220px">
-          <f:header>
-            <card:NumericHeader
-              title="Pending"
-              number="{app>/stats/pendingCount}"
-              subtitle="Awaiting confirmation"
-              state="{= ${app>/stats/pendingCount} > 0 ? 'Critical' : 'Good'}"/>
-          </f:header>
-        </f:Card>
+        <Panel class="sapUiTinyMarginEnd sapUiTinyMarginBottom" width="200px">
+          <VBox class="sapUiSmallMargin" alignItems="Start">
+            <Text text="Pending" class="sapUiTinyMarginBottom"/>
+            <ObjectNumber number="{app>/stats/pendingCount}" unit="anchors" emphasized="true"
+              state="{= ${app>/stats/pendingCount} > 0 ? 'Warning' : 'Success'}"/>
+          </VBox>
+        </Panel>
+
+        <Panel class="sapUiTinyMarginEnd sapUiTinyMarginBottom" width="200px">
+          <VBox class="sapUiSmallMargin" alignItems="Start">
+            <Text text="Periods" class="sapUiTinyMarginBottom"/>
+            <ObjectNumber number="{app>/stats/periodCount}" unit="defined" emphasized="true"/>
+          </VBox>
+        </Panel>
       </HBox>
 
       <!-- Recent Transactions -->
-      <Panel headerText="Recent Transactions" class="sapUiSmallMargin">
+      <Panel headerText="Recent Transactions" class="sapUiSmallMargin" expandable="false">
         <Table id="recentTxTable"
-               items="{path: '/Transactions', parameters: {$top: 10, $orderby: 'createdAt desc', $expand: 'org'}}"
+               items="{path: '/Transactions', parameters: {$orderby: 'createdAt desc', $expand: 'org'}}"
                growing="true" growingThreshold="10">
           <columns>
             <Column><Text text="Number"/></Column>
@@ -64,12 +59,13 @@
             <Column><Text text="Batch"/></Column>
           </columns>
           <items>
-            <ColumnListItem type="Navigation" press=".onTxPress">
+            <ColumnListItem type="Navigation" press=".onNavTransactions">
               <Text text="{transactionNumber}"/>
               <Text text="{date}"/>
               <Text text="{type}"/>
               <Text text="{org/name}"/>
-              <ObjectStatus text="{status}" state="{= ${status} === 'CONFIRMED' ? 'Success' : ${status} === 'PUBLISHED' ? 'Warning' : ${status} === 'VALIDATED' ? 'Information' : 'None'}"/>
+              <ObjectStatus text="{status}"
+                state="{= ${status} === 'CONFIRMED' ? 'Success' : ${status} === 'PUBLISHED' ? 'Warning' : ${status} === 'VALIDATED' ? 'Information' : 'None'}"/>
               <Text text="{batchId}"/>
             </ColumnListItem>
           </items>
@@ -77,9 +73,9 @@
       </Panel>
 
       <!-- Recent Anchors -->
-      <Panel headerText="Recent On-Chain Anchors" class="sapUiSmallMargin">
+      <Panel headerText="Recent On-Chain Anchors" class="sapUiSmallMargin" expandable="false">
         <Table id="recentAnchorTable"
-               items="{path: '/OnChainAnchors', parameters: {$top: 5, $orderby: 'createdAt desc'}}"
+               items="{path: '/OnChainAnchors', parameters: {$orderby: 'createdAt desc'}}"
                growing="true" growingThreshold="5">
           <columns>
             <Column width="15%"><Text text="Status"/></Column>

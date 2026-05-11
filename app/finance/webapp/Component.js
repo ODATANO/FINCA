@@ -31,15 +31,19 @@ sap.ui.define([
             var cached = JSON.parse(raw);
             if (cached && cached.expiresAt > Date.now()) {
               oModel.changeHttpHeaders({ Authorization: "Bearer " + cached.jwt });
+              oModel.refresh();
               return;
             }
           }
         } catch (e) { /* ignore */ }
         oModel.changeHttpHeaders({ Authorization: undefined });
+        oModel.refresh();
         return;
       }
 
       oModel.changeHttpHeaders({ Authorization: "Bearer " + CardanoWallet.getJwt() });
+      oModel.refresh();
+      this.getEventBus().publish("finca", "authChanged");
     },
 
     /**

@@ -4,16 +4,34 @@ sap.ui.define([
   "sap/m/MessageBox",
   "sap/ui/model/Filter",
   "sap/ui/model/FilterOperator",
+  "sap/ui/core/Fragment",
+  "sap/ui/model/json/JSONModel",
   "finca/model/CardanoWallet"
-], function (Controller, MessageToast, MessageBox, Filter, FilterOperator, CardanoWallet) {
+], function (Controller, MessageToast, MessageBox, Filter, FilterOperator, Fragment, JSONModel, CardanoWallet) {
   "use strict";
 
   return Controller.extend("finca.controller.Transactions", {
 
     onInit: function () {
+      this.getView().setModel(new JSONModel({ mode: "create", canEdit: true }), "dialog");
+      this.getView().setModel(new JSONModel({ orgs: [], periods: [] }), "org");
+      this._loadOrgs();
+
       // Listen for wallet model changes to filter by org
       var oWalletModel = this.getOwnerComponent().getModel("wallet");
       oWalletModel.attachPropertyChange(this._onWalletChanged.bind(this));
+    },
+
+    _loadOrgs: function () {
+      var oModel = this.getOwnerComponent().getModel();
+      oModel.bindList("/Organisations").requestContexts(0, 100).then(function (a) {
+        this.getView().getModel("org").setProperty("/orgs",
+          a.map(function (c) { return c.getObject(); }));
+      }.bind(this));
+      oModel.bindList("/AccountingPeriods").requestContexts(0, 200).then(function (a) {
+        this.getView().getModel("org").setProperty("/periods",
+          a.map(function (c) { return c.getObject(); }));
+      }.bind(this));
     },
 
     _onWalletChanged: function () {
@@ -178,6 +196,112 @@ sap.ui.define([
         } else {
           MessageBox.error("Transaction failed: " + (err.message || err));
         }
+      });
+    },
+
+    // ── CRUD: Create / Edit Dialog ─────────────────────────────
+
+    _loadDialog: function () {
+      if (!this._pDialog) {
+        this._pDialog = Fragment.load({
+          id: this.getView().getId(),
+          name: "finca.fragment.TransactionDialog",
+          controller: this
+        }).then(function (oDialog) {
+          this.getView().addDependent(oDialog);
+          return oDialog;
+        }.bind(this));
+      }
+      return this._pDialog;
+    },
+
+    _isOnChain: function (sStatus) {
+      return sStatus === "PUBLISHED" || sStatus === "CONFIRMED";
+    },
+
+    onAddTx: function () {
+      var oBinding = this.byId("txTableAll").getBinding("items");
+      var aOrgs = this.getView().getModel("org").getProperty("/orgs") || [];
+      if (!aOrgs.length) {
+        MessageBox.warning("Create an organisation first.");
+        return;
+      }
+      var sNow = new Date().toISOString().slice(0, 10);
+      this._oCreateCtx = oBinding.create({
+        org_ID: aOrgs[0].ID,
+        transactionNumber: "",
+        batchId: "",
+        type: "JOURNAL",
+        date: sNow,
+        description: "",
+        status: "DRAFT"
+      }, true);
+      this.getView().getModel("dialog").setData({ mode: "create", canEdit: true });
+      this._loadDialog().then(function (oDialog) {
+        oDialog.setBindingContext(this._oCreateCtx);
+        oDialog.open();
+      }.bind(this));
+    },
+
+    onTxPress: function (oEvent) {
+      var oCtx = oEvent.getSource().getBindingContext();
+      if (!oCtx) return;
+      this._oCreateCtx = null;
+      var sStatus = oCtx.getProperty("status");
+      this.getView().getModel("dialog").setData({
+        mode: "edit",
+        canEdit: !this._isOnChain(sStatus)
+      });
+      this._loadDialog().then(function (oDialog) {
+        oDialog.setBindingContext(oCtx);
+        oDialog.open();
+      });
+    },
+
+    onTxConfirm: function () {
+      var oModel = this.getView().getModel();
+      var bCreate = this.getView().getModel("dialog").getProperty("/mode") === "create";
+      oModel.submitBatch("$auto").then(function () {
+        MessageToast.show(bCreate ? "Transaction created" : "Changes saved");
+      }).catch(function (err) {
+        MessageBox.error("Save failed: " + (err.message || err));
+      });
+      this._pDialog.then(function (d) { d.close(); });
+    },
+
+    onTxCancel: function () {
+      var oModel = this.getView().getModel();
+      if (this._oCreateCtx) {
+        this._oCreateCtx.delete("$auto").catch(function () { /* ignore */ });
+        this._oCreateCtx = null;
+      } else {
+        oModel.resetChanges("$auto");
+      }
+      this._pDialog.then(function (d) { d.close(); });
+    },
+
+    onAddItem: function () {
+      var oCtx = this._pDialog && this.byId("txDialog") && this.byId("txDialog").getBindingContext();
+      if (!oCtx) return;
+      var oItemsBinding = oCtx.getBinding ? oCtx.getBinding("items") : null;
+      // Fall back: bindList on the items relative to context
+      var oTable = this.byId("txItemsTable");
+      var oBinding = oTable && oTable.getBinding("items");
+      if (!oBinding) return;
+      oBinding.create({
+        lineNumber: (oBinding.getLength() || 0) + 1,
+        accountCode: "",
+        accountName: "",
+        amount: "0.00",
+        currencyCode: "EUR"
+      }, true);
+    },
+
+    onRemoveItem: function (oEvent) {
+      var oCtx = oEvent.getSource().getBindingContext();
+      if (!oCtx) return;
+      oCtx.delete("$auto").catch(function (err) {
+        MessageBox.error("Delete failed: " + (err.message || err));
       });
     }
   });

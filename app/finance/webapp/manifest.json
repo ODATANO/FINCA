@@ -29,7 +29,6 @@
         "sap.ui.core": {},
         "sap.ui.layout": {},
         "sap.tnt": {},
-        "sap.f": {},
         "sap.ui.table": {}
       }
     },
@@ -71,7 +70,8 @@
               "transactionCount": 0,
               "reportCount": 0,
               "confirmedCount": 0,
-              "pendingCount": 0
+              "pendingCount": 0,
+              "periodCount": 0
             }
           }
         }
@@ -98,15 +98,17 @@
         { "name": "reports",      "pattern": "reports",                  "target": "reports" },
         { "name": "anchors",      "pattern": "anchors",                  "target": "anchors" },
         { "name": "verify",       "pattern": "verify",                   "target": "verify" },
-        { "name": "organisations","pattern": "organisations",            "target": "organisations" }
+        { "name": "organisations","pattern": "organisations",            "target": "organisations" },
+        { "name": "periods",      "pattern": "periods",                  "target": "periods" }
       ],
       "targets": {
-        "dashboard":     { "viewName": "Dashboard",     "viewLevel": 1 },
-        "transactions":  { "viewName": "Transactions",  "viewLevel": 2 },
-        "reports":       { "viewName": "Reports",       "viewLevel": 2 },
-        "anchors":       { "viewName": "Anchors",       "viewLevel": 2 },
-        "verify":        { "viewName": "Verify",        "viewLevel": 2 },
-        "organisations": { "viewName": "Organisations", "viewLevel": 2 }
+        "dashboard":     { "viewName": "Dashboard",        "viewLevel": 1 },
+        "transactions":  { "viewName": "Transactions",     "viewLevel": 2 },
+        "reports":       { "viewName": "Reports",          "viewLevel": 2 },
+        "anchors":       { "viewName": "Anchors",          "viewLevel": 2 },
+        "verify":        { "viewName": "Verify",           "viewLevel": 2 },
+        "organisations": { "viewName": "Organisations",    "viewLevel": 2 },
+        "periods":       { "viewName": "AccountingPeriods","viewLevel": 2 }
       }
     }
   }

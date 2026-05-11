@@ -19,7 +19,7 @@
           <Column><Text text="Wallet Address"/></Column>
         </columns>
         <items>
-          <ColumnListItem>
+          <ColumnListItem type="Navigation" press=".onOrgPress">
             <Text text="{name}"/>
             <Text text="{currencyCode}"/>
             <Text text="{countryCode}"/>

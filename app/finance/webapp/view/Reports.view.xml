@@ -4,6 +4,7 @@
 
   <Page id="reportsPage" title="Financial Reports">
     <headerContent>
+      <Button text="Add Report" icon="sap-icon://add" press=".onAddReport"/>
       <Button text="Publish Report" icon="sap-icon://upload-to-cloud" press=".onPublishReport" type="Attention"/>
     </headerContent>
 
@@ -25,10 +26,10 @@
                 <Column width="12%"><Text text="Status"/></Column>
               </columns>
               <items>
-                <ColumnListItem>
+                <ColumnListItem type="Navigation" press=".onReportPress">
                   <Text text="{org/name}"/>
                   <Text text="{= ${subType} === 'BALANCE_SHEET' ? 'Balance Sheet' : 'Income Statement'}"/>
-                  <ObjectNumber number="{year}"/>
+                  <Text text="{ path: 'year', type: 'sap.ui.model.odata.type.Int32', formatOptions: { groupingEnabled: false } }"/>
                   <Text text="{interval}"/>
                   <Text text="{mode}"/>
                   <Text text="v{version}"/>
@@ -51,7 +52,7 @@
               <items>
                 <ColumnListItem>
                   <Text text="{org/name}"/>
-                  <ObjectNumber number="{year}"/>
+                  <Text text="{ path: 'year', type: 'sap.ui.model.odata.type.Int32', formatOptions: { groupingEnabled: false } }"/>
                   <Text text="{interval}"/>
                   <ObjectStatus text="{status}"
                     state="{= ${status} === 'CONFIRMED' ? 'Success' : ${status} === 'PUBLISHED' ? 'Warning' : 'None'}"/>
@@ -72,7 +73,7 @@
               <items>
                 <ColumnListItem>
                   <Text text="{org/name}"/>
-                  <ObjectNumber number="{year}"/>
+                  <Text text="{ path: 'year', type: 'sap.ui.model.odata.type.Int32', formatOptions: { groupingEnabled: false } }"/>
                   <Text text="{interval}"/>
                   <ObjectStatus text="{status}"
                     state="{= ${status} === 'CONFIRMED' ? 'Success' : ${status} === 'PUBLISHED' ? 'Warning' : 'None'}"/>

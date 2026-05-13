@@ -46,14 +46,27 @@ sap.ui.define([
     },
 
     _count: function (oModel, sPath, oFilter) {
-      try {
-        var oBinding = oModel.bindList(sPath, undefined, undefined, oFilter ? [oFilter] : undefined, { $count: true });
-        return oBinding.getHeaderContext().requestProperty("$count")
-          .then(function (n) { return n || 0; })
-          .catch(function () { return 0; });
-      } catch (e) {
-        return Promise.resolve(0);
-      }
+      // requestProperty("$count") on an unobserved list binding does not
+      // reliably issue a request under autoExpandSelect. Force a fetch via
+      // requestContexts, then read the count from the header context.
+      return new Promise(function (resolve) {
+        try {
+          var oBinding = oModel.bindList(sPath, undefined, undefined, oFilter ? [oFilter] : undefined, { $count: true });
+          var oHeader = oBinding.getHeaderContext();
+          oBinding.requestContexts(0, 1).then(function () {
+            var n = oHeader.getProperty("$count");
+            resolve(typeof n === "number" ? n : Number(n) || 0);
+          }).catch(function (err) {
+            // eslint-disable-next-line no-console
+            console.warn("[Dashboard] count failed for " + sPath, err);
+            resolve(0);
+          });
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.warn("[Dashboard] _count exception for " + sPath, e);
+          resolve(0);
+        }
+      });
     },
 
     onNavTransactions: function () {

@@ -54,8 +54,8 @@ GET  VerifyReport(reportId=<uuid>)
 
 The OData V4 feed is consumable directly from Excel with three options:
 
-- **One-click:** [`excel/finca.odc`](../excel/finca.odc) — double-click in Windows.
-- **Power Query M template:** [`excel/finca-power-query.m`](../excel/finca-power-query.m) — paste into the Advanced Editor; pre-configured to expand `Transactions.items` and preserve `Decimal(23,2)` precision via `Currency.Type`.
+- **One-click:** [`excel/finca.odc`](../excel/finca.odc) double-click in Windows.
+- **Power Query M template:** [`excel/finca-power-query.m`](../excel/finca-power-query.m) paste into the Advanced Editor; pre-configured to expand `Transactions.items` and preserve `Decimal(23,2)` precision via `Currency.Type`.
 - **Native UI:** *Data → Get Data → From OData Feed* → `http://localhost:4004/odata/v4/finance/`.
 
 Full details and caveats: [`excel/README.md`](../excel/README.md). CORS for Excel-for-the-Web is preconfigured in `srv/server.js`.

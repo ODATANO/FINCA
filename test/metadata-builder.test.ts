@@ -65,6 +65,42 @@ describe('metadata-builder — Reeve label-1447 conformance', () => {
       expect(item.document).toBeUndefined();
     });
 
+    test('includes event/project/cost_center/fx_rate when set on item', () => {
+      const tx = {
+        ID: 'tx-1', transactionNumber: 'TX-001', batchId: 'B-1', type: 'JOURNAL',
+        date: '2025-01-15',
+        items: [{
+          ID: 'item-1', amount: '100.00',
+          eventCode: 'E1', eventName: 'Event One',
+          projectCode: 'P1', projectName: 'Project One',
+          costCenterCode: 'CC1', costCenterName: 'Cost Center One',
+          fxRate: '1.0537'
+        }]
+      };
+      const meta = buildTransactionMetadata([tx], ORG);
+      const item = (meta['1447'].data as any)[0].items[0];
+      expect(item.event).toEqual({ code: 'E1', name: 'Event One' });
+      expect(item.project).toEqual({ cust_code: 'P1', name: 'Project One' });
+      expect(item.cost_center).toEqual({ cust_code: 'CC1', name: 'Cost Center One' });
+      expect(item.fx_rate).toBe('1.0537');
+    });
+
+    test('defaults event/project/cost_center name to empty string when only code is set', () => {
+      const tx = {
+        ID: 'tx-1', transactionNumber: 'TX-001', batchId: 'B-1', type: 'JOURNAL',
+        date: '2025-01-15',
+        items: [{
+          ID: 'item-1', amount: '100.00',
+          eventCode: 'E1', projectCode: 'P1', costCenterCode: 'CC1'
+        }]
+      };
+      const meta = buildTransactionMetadata([tx], ORG);
+      const item = (meta['1447'].data as any)[0].items[0];
+      expect(item.event.name).toBe('');
+      expect(item.project.name).toBe('');
+      expect(item.cost_center.name).toBe('');
+    });
+
     test('builds full document block when fields present', () => {
       const tx = {
         ID: 'tx-1', transactionNumber: 'TX-001', batchId: 'B-1', type: 'JOURNAL',
@@ -111,6 +147,33 @@ describe('metadata-builder — Reeve label-1447 conformance', () => {
       expect(data.ASSETS.CURRENT_ASSETS.Cash).toBe('1000.00');
       expect(data.ASSETS.CURRENT_ASSETS.Receivables).toBe('500.00');
       expect(data.ASSETS.NON_CURRENT.PPE).toBe('5000.00');
+    });
+
+    test('collapses to single number when category has no subCategory', () => {
+      const entries = [
+        { category: 'NET_INCOME', amount: '12500.00', sortOrder: 1 }
+      ];
+      const meta = buildReportMetadata({ subType: 'INCOME_STATEMENT', year: 2025 }, entries, ORG);
+      const data = meta['1447'].data as any;
+      expect(data.NET_INCOME).toBe('12500.00');
+    });
+
+    test('collapses to subCategory value when no lineItem is set', () => {
+      const entries = [
+        { category: 'ASSETS', subCategory: 'TOTAL', amount: '5000.00', sortOrder: 1 }
+      ];
+      const meta = buildReportMetadata({ subType: 'BALANCE_SHEET', year: 2025 }, entries, ORG);
+      const data = meta['1447'].data as any;
+      expect(data.ASSETS.TOTAL).toBe('5000.00');
+    });
+
+    test('falls back to OTHER bucket when entry has no category', () => {
+      const entries = [
+        { amount: '42.00', sortOrder: 1 }
+      ];
+      const meta = buildReportMetadata({ subType: 'BALANCE_SHEET', year: 2025 }, entries, ORG);
+      const data = meta['1447'].data as any;
+      expect(data.OTHER).toBe('42.00');
     });
 
     test('applies defaults for missing optional fields', () => {

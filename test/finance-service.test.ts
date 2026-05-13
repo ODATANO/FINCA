@@ -111,4 +111,88 @@ describe('FinanceService — integration', () => {
       expect(res.data.onChainData).toContain('"id":"x"');
     });
   });
+
+  describe('CheckPendingAnchors', () => {
+    const ANCHOR_ID = '00000000-0000-4000-8000-anchor000poll';
+
+    beforeAll(async () => {
+      const { OnChainAnchors } = cds.entities('finca');
+      // Clear any anchors created by PublishTransactions tests so only ours matches
+      await DELETE.from(OnChainAnchors);
+      await INSERT.into(OnChainAnchors).entries({
+        ID: ANCHOR_ID,
+        transaction_ID: TX_OK,
+        txHash: 'tx-hash-pending-confirm',
+        status: 'SUBMITTED',
+        metadataLabel: 1447,
+        submittedAt: new Date().toISOString()
+      });
+    });
+
+    test('confirms SUBMITTED anchors and flips the linked transaction to CONFIRMED', async () => {
+      const res = await POST('/odata/v4/finance/CheckPendingAnchors', {});
+      expect(res.data.updated).toBe(1);
+
+      const { OnChainAnchors, Transactions } = cds.entities('finca');
+      const anchor = await SELECT.one.from(OnChainAnchors).where({ ID: ANCHOR_ID });
+      expect(anchor.status).toBe('CONFIRMED');
+      expect(anchor.slot).toBe(12345);
+      expect(anchor.blockNumber).toBe(678);
+      expect(anchor.confirmedAt).toBeTruthy();
+
+      const tx = await SELECT.one.from(Transactions).where({ ID: TX_OK });
+      expect(tx.status).toBe('CONFIRMED');
+    });
+  });
+
+  describe('ProvisionOrg', () => {
+    const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+    beforeAll(async () => {
+      // Clean slate so the wallet has no org yet — required for the create path
+      const { OnChainAnchors, TransactionItems, Transactions, Organisations } = cds.entities('finca');
+      await DELETE.from(OnChainAnchors);
+      await DELETE.from(TransactionItems);
+      await DELETE.from(Transactions);
+      await DELETE.from(Organisations);
+    });
+
+    test('creates a new org with EUR/DE defaults and a Wallet-suffix name', async () => {
+      const res = await POST('/odata/v4/finance/ProvisionOrg', {});
+      expect(res.data.created).toBe(true);
+      expect(res.data.ID).toMatch(UUID_V4);
+      expect(res.data.walletAddress).toBe('addr_test1xxx');
+      expect(res.data.name).toMatch(/^Wallet /);
+
+      const { Organisations } = cds.entities('finca');
+      const persisted = await SELECT.one.from(Organisations).where({ ID: res.data.ID });
+      expect(persisted.currencyCode).toBe('EUR');
+      expect(persisted.countryCode).toBe('DE');
+    });
+
+    test('returns existing org with created=false on second call (idempotent)', async () => {
+      const res = await POST('/odata/v4/finance/ProvisionOrg', { name: 'Should be ignored' });
+      expect(res.data.created).toBe(false);
+      expect(res.data.walletAddress).toBe('addr_test1xxx');
+      // name from the first call wins, not the one passed here
+      expect(res.data.name).toMatch(/^Wallet /);
+    });
+
+    test('honors custom name, currency, country when creating fresh', async () => {
+      const { Organisations } = cds.entities('finca');
+      await DELETE.from(Organisations);
+
+      const res = await POST('/odata/v4/finance/ProvisionOrg', {
+        name: 'My Org Inc.',
+        currencyCode: 'USD',
+        countryCode: 'US'
+      });
+      expect(res.data.created).toBe(true);
+      expect(res.data.name).toBe('My Org Inc.');
+
+      const persisted = await SELECT.one.from(Organisations).where({ ID: res.data.ID });
+      expect(persisted.currencyCode).toBe('USD');
+      expect(persisted.countryCode).toBe('US');
+    });
+  });
 });

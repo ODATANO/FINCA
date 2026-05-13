@@ -4,6 +4,7 @@
  * Self-contained module for browser wallet integration (Nami, Eternl, Lace, etc.).
  * Handles detection, connection, signing, bech32 encoding, and VKH extraction.
  */
+/* global TextEncoder */
 sap.ui.define([], function () {
   "use strict";
 
@@ -37,9 +38,10 @@ sap.ui.define([], function () {
 
   function _hrpExpand(hrp) {
     var ret = [];
-    for (var i = 0; i < hrp.length; i++) { ret.push(hrp.charCodeAt(i) >> 5); }
+    var i;
+    for (i = 0; i < hrp.length; i++) { ret.push(hrp.charCodeAt(i) >> 5); }
     ret.push(0);
-    for (var i = 0; i < hrp.length; i++) { ret.push(hrp.charCodeAt(i) & 31); }
+    for (i = 0; i < hrp.length; i++) { ret.push(hrp.charCodeAt(i) & 31); }
     return ret;
   }
 
@@ -99,8 +101,9 @@ sap.ui.define([], function () {
     var data5bit = _convertBits(bytes, 8, 5, true);
     var checksum = _createChecksum(hrp, data5bit);
     var encoded = hrp + "1";
-    for (var i = 0; i < data5bit.length; i++) encoded += BECH32_CHARSET[data5bit[i]];
-    for (var i = 0; i < checksum.length; i++) encoded += BECH32_CHARSET[checksum[i]];
+    var i;
+    for (i = 0; i < data5bit.length; i++) encoded += BECH32_CHARSET[data5bit[i]];
+    for (i = 0; i < checksum.length; i++) encoded += BECH32_CHARSET[checksum[i]];
     return encoded;
   }
 

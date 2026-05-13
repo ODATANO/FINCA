@@ -26,7 +26,7 @@
   },
   "scripts": {
     "start": "cds-serve",
-    "deploy": "cds deploy --to sqlite:db.sqlite",
+    "deploy": "cds-deploy",
     "cds:types": "cds-typer \"*\" --outputDirectory @cds-models",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"app/**/*.js\" \"srv/**/*.js\" \"test/**/*.js\"",

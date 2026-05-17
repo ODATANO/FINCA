@@ -2,8 +2,9 @@
 
 > **F**inancial **IN**formation **C**hain **A**nchoring: A [Reeve](https://docs.reeve.technology/)-compatible SAP CAP service for cryptographically verifiable anchoring of accounting and financial-report data on the Cardano blockchain. Powered by [@odatano/core](https://www.npmjs.com/package/@odatano/core).
 
-[![Tests](https://img.shields.io/badge/tests-41%20passing-brightgreen)]()
- [![@odatano/core](https://img.shields.io/badge/@odatano/core-1.7.7-blue)](https://www.npmjs.com/package/@odatano/core)
+[![Tests](https://github.com/ODATANO/FINCA/actions/workflows/test.yaml/badge.svg)](https://github.com/ODATANO/FINCA/actions/workflows/test.yaml)
+[![codecov](https://codecov.io/gh/ODATANO/FINCA/branch/main/graph/badge.svg)](https://codecov.io/gh/ODATANO/FINCA)
+[![@odatano/core](https://img.shields.io/badge/@odatano/core-1.7.7-blue)](https://www.npmjs.com/package/@odatano/core)
 [![License](https://img.shields.io/badge/license-Apache%202.0-yellow)](LICENSE)
 
 FINCA manages organisations, journal-style transactions, and financial reports (Balance Sheet, Income Statement); serialises them into the **CIP-10 label-1447 metadata format** (Reeve spec); builds unsigned Cardano transactions via **ODATANO**; has them signed by a CIP-30 browser wallet; and polls confirmation status.

@@ -1,3 +1,4 @@
+![FINCA](datano-finca.png)
 # FINCA - Financial Data Anchoring on Cardano
 
 > **F**inancial **IN**formation **C**hain **A**nchoring: A [Reeve](https://docs.reeve.technology/)-compatible SAP CAP service for cryptographically verifiable anchoring of accounting and financial-report data on the Cardano blockchain. Powered by [@odatano/core](https://www.npmjs.com/package/@odatano/core).

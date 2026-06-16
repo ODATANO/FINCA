@@ -9,7 +9,7 @@
 import cds, { ApplicationService, Request } from '@sap/cds';
 import { randomBytes } from 'node:crypto';
 import { SignJWT } from 'jose';
-import { verifyCip30Signature } from './auth/cose-verify';
+import { verifyDataSignature } from './lib/chain-adapter';
 import { AuthNonces } from '#cds-models/finca';
 import { getJwtSecret } from './auth/jwt-secret';
 
@@ -68,10 +68,11 @@ class AuthService extends ApplicationService {
       return req.reject(401, 'Nonce expired');
     }
 
-    // 2. Verify COSE_Sign1
-    const result = verifyCip30Signature(
-      { signature, key },
+    // 2. Verify COSE_Sign1 via ODATANO's CardanoSignService
+    const result = await verifyDataSignature(
       address,
+      signature,
+      key,
       signMessage(nonce)
     );
     if (!result.valid) {

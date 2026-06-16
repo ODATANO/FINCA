@@ -5,75 +5,106 @@
  */
 import cds from '@sap/cds';
 import * as crypto from 'node:crypto';
-import * as MS from '@emurgo/cardano-message-signing-nodejs';
-import * as CSL from '@emurgo/cardano-serialization-lib-nodejs';
+import {
+  Cbor,
+  CborArray,
+  CborBytes,
+  CborMap,
+  CborNegInt,
+  CborText,
+  CborUInt
+} from '@harmoniclabs/cbor';
+import { Address, Credential } from '@harmoniclabs/cardano-ledger-ts';
+import { blake2b_224 } from '@harmoniclabs/crypto';
 
 const { POST } = (cds as any).test(__dirname + '/..');
+
+/** Extract the raw 32-byte Ed25519 public key from a node KeyObject (strip SPKI DER prefix). */
+function rawPublicKey(publicKey: crypto.KeyObject): Uint8Array {
+  return Uint8Array.prototype.slice.call(
+    publicKey.export({ format: 'der', type: 'spki' }),
+    12
+  );
+}
+
+/** A wallet-shaped Ed25519 keypair plus its derived enterprise (testnet) address. */
+function makeWallet() {
+  const { privateKey, publicKey } = crypto.generateKeyPairSync('ed25519');
+  const rawPub = rawPublicKey(publicKey);
+  const addr = new Address({
+    network: 'testnet',
+    paymentCreds: Credential.keyHash(blake2b_224(rawPub))
+  });
+  return {
+    privateKey,
+    rawPub,
+    bech32: addr.toString(),
+    addressBytes: new Uint8Array(addr.toBytes())
+  };
+}
 
 /**
  * Builds a CIP-30 signData-shaped response from a private Ed25519 key.
  * Mirrors what a wallet would do.
  */
 function buildCip30Signature(
-  privateKey: CSL.PrivateKey,
-  pubKey: CSL.PublicKey,
+  privateKey: crypto.KeyObject,
+  rawPub: Uint8Array,
   addressBytes: Uint8Array,
   payloadUtf8: string
 ): { signature: string; key: string } {
-  // Build COSE_Sign1 protected headers (CBOR map):
-  //   alg (1) = EdDSA (-8), address ("address") = raw address bytes
-  const protectedMap = MS.HeaderMap.new();
-  protectedMap.set_algorithm_id(MS.Label.from_algorithm_id(MS.AlgorithmId.EdDSA));
-  protectedMap.set_header(
-    MS.Label.new_text('address'),
-    MS.CBORValue.new_bytes(addressBytes)
-  );
-  const protectedHeaders = MS.ProtectedHeaderMap.new(protectedMap);
-  const headers = MS.Headers.new(protectedHeaders, MS.HeaderMap.new());
+  // COSE_Sign1 protected header bstr — a CBOR map:
+  //   alg (1) = EdDSA (-8), "address" = raw address bytes
+  const protectedBytes = Cbor.encode(new CborMap([
+    { k: new CborUInt(1n), v: new CborNegInt(-8n) },
+    { k: new CborText('address'), v: new CborBytes(addressBytes) }
+  ]));
+  const payloadBytes = new Uint8Array(Buffer.from(payloadUtf8, 'utf-8'));
 
-  const builder = MS.COSESign1Builder.new(
-    headers,
-    Buffer.from(payloadUtf8, 'utf-8'),
-    false
-  );
-  const toSign = builder.make_data_to_sign().to_bytes();
-  const signature = privateKey.sign(Buffer.from(toSign)).to_bytes();
-  const cose1 = builder.build(Buffer.from(signature));
+  // Sign the COSE Sig_structure: [ "Signature1", protected, external_aad (empty), payload ]
+  const sigStructure = Cbor.encode(new CborArray([
+    new CborText('Signature1'),
+    new CborBytes(protectedBytes),
+    new CborBytes(new Uint8Array(0)),
+    new CborBytes(payloadBytes)
+  ]));
+  const signature = crypto.sign(null, Buffer.from(sigStructure), privateKey);
 
-  // COSE_Key with kty=OKP (1), crv=Ed25519 (6), x = pubkey bytes (-2)
-  const coseKey = MS.COSEKey.new(MS.Label.from_key_type(MS.KeyType.OKP));
-  coseKey.set_algorithm_id(MS.Label.from_algorithm_id(MS.AlgorithmId.EdDSA));
-  coseKey.set_header(
-    MS.Label.new_int(MS.Int.new_negative(MS.BigNum.from_str('1'))),  // crv
-    MS.CBORValue.new_int(MS.Int.new_i32(6))                          // Ed25519
-  );
-  coseKey.set_header(
-    MS.Label.new_int(MS.Int.new_negative(MS.BigNum.from_str('2'))),  // x
-    MS.CBORValue.new_bytes(pubKey.as_bytes())
-  );
+  // COSE_Sign1 = [ protected, unprotected (empty map), payload, signature ]
+  const cose1 = Cbor.encode(new CborArray([
+    new CborBytes(protectedBytes),
+    new CborMap([]),
+    new CborBytes(payloadBytes),
+    new CborBytes(new Uint8Array(signature))
+  ]));
+
+  // COSE_Key map: kty(1)=OKP(1), alg(3)=EdDSA(-8), crv(-1)=Ed25519(6), x(-2)=pubkey
+  const coseKey = Cbor.encode(new CborMap([
+    { k: new CborUInt(1n), v: new CborUInt(1n) },
+    { k: new CborUInt(3n), v: new CborNegInt(-8n) },
+    { k: new CborNegInt(-1n), v: new CborUInt(6n) },
+    { k: new CborNegInt(-2n), v: new CborBytes(rawPub) }
+  ]));
 
   return {
-    signature: Buffer.from(cose1.to_bytes()).toString('hex'),
-    key: Buffer.from(coseKey.to_bytes()).toString('hex')
+    signature: Buffer.from(cose1).toString('hex'),
+    key: Buffer.from(coseKey).toString('hex')
   };
 }
 
 describe('AuthService', () => {
   let address: string;
-  let privateKey: CSL.PrivateKey;
-  let pubKey: CSL.PublicKey;
+  let privateKey: crypto.KeyObject;
+  let rawPub: Uint8Array;
   let addressBytes: Uint8Array;
 
   beforeAll(() => {
     // Generate a fresh Ed25519 keypair, derive an enterprise address
-    const seed = crypto.randomBytes(32);
-    privateKey = CSL.PrivateKey.from_normal_bytes(seed);
-    pubKey = privateKey.to_public();
-    const stakeCred = CSL.Credential.from_keyhash(pubKey.hash());
-    const enterprise = CSL.EnterpriseAddress.new(0 /* testnet */, stakeCred);
-    const addr = enterprise.to_address();
-    address = addr.to_bech32();
-    addressBytes = addr.to_bytes();
+    const wallet = makeWallet();
+    privateKey = wallet.privateKey;
+    rawPub = wallet.rawPub;
+    address = wallet.bech32;
+    addressBytes = wallet.addressBytes;
   });
 
   test('Nonce endpoint returns a fresh nonce + payload', async () => {
@@ -87,7 +118,7 @@ describe('AuthService', () => {
     const nonceRes = await POST('/auth/Nonce', { address });
     const { nonce, payload } = nonceRes.data;
 
-    const sig = buildCip30Signature(privateKey, pubKey, addressBytes, payload);
+    const sig = buildCip30Signature(privateKey, rawPub, addressBytes, payload);
 
     const verifyRes = await POST('/auth/Verify', {
       address,
@@ -102,7 +133,7 @@ describe('AuthService', () => {
   test('Verify rejects a reused nonce', async () => {
     const nonceRes = await POST('/auth/Nonce', { address });
     const { nonce, payload } = nonceRes.data;
-    const sig = buildCip30Signature(privateKey, pubKey, addressBytes, payload);
+    const sig = buildCip30Signature(privateKey, rawPub, addressBytes, payload);
 
     await POST('/auth/Verify', { address, nonce, signature: sig.signature, key: sig.key });
     await expect(POST('/auth/Verify', { address, nonce, signature: sig.signature, key: sig.key }))
@@ -113,11 +144,9 @@ describe('AuthService', () => {
     const nonceRes = await POST('/auth/Nonce', { address });
     const { nonce, payload } = nonceRes.data;
 
-    // Sign with a DIFFERENT key
-    const otherSeed = crypto.randomBytes(32);
-    const otherSk = CSL.PrivateKey.from_normal_bytes(otherSeed);
-    const otherPk = otherSk.to_public();
-    const sig = buildCip30Signature(otherSk, otherPk, addressBytes, payload);
+    // Sign with a DIFFERENT key (but claim the original address)
+    const other = makeWallet();
+    const sig = buildCip30Signature(other.privateKey, other.rawPub, addressBytes, payload);
 
     await expect(POST('/auth/Verify', { address, nonce, signature: sig.signature, key: sig.key }))
       .rejects.toMatchObject({ response: { status: 401 } });

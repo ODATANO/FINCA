@@ -3,14 +3,16 @@
   "version": "1.0.0",
   "description": "Financial Data Anchoring on Cardano via ODATANO",
   "dependencies": {
-    "@emurgo/cardano-message-signing-nodejs": "^1.1.0",
-    "@odatano/core": "^1.7.7",
+    "@odatano/core": "^1.9.1",
     "@sap/cds": "^9",
     "express": "^4",
     "jose": "^5.10.0"
   },
   "devDependencies": {
     "@cap-js/cds-test": "^1.0.1",
+    "@harmoniclabs/cardano-ledger-ts": "^0.5.1",
+    "@harmoniclabs/cbor": "^2.0.1",
+    "@harmoniclabs/crypto": "^0.3.0",
     "@cap-js/cds-typer": ">=0.1",
     "@cap-js/cds-types": "^0.15.0",
     "@cap-js/sqlite": "^2",
@@ -55,9 +57,6 @@
         "network": "preview",
         "backends": [
           "koios"
-        ],
-        "txBuilders": [
-          "buildooor"
         ]
       }
     }

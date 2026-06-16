@@ -35,6 +35,17 @@ export interface OnChainMetadata {
   payload: string;
 }
 
+/** Result of verifying a CIP-30 signData (COSE_Sign1) message signature. */
+export interface DataSignatureResult {
+  valid: boolean;
+  /** Failure detail when not valid */
+  reason?: string;
+  /** UTF-8 of the signed payload, echoed back */
+  signedPayload?: string;
+  /** Hex blake2b-224 of the signer public key */
+  signerVkh?: string;
+}
+
 /**
  * Build an unsigned metadata transaction via ODATANO.
  *
@@ -154,4 +165,34 @@ export async function getOnChainMetadata(txHash: string): Promise<OnChainMetadat
     label: m.label,
     payload: m.payload
   }));
+}
+
+/**
+ * Verify a CIP-30 signData (COSE_Sign1) message signature via ODATANO.
+ *
+ * Stateless crypto check: confirms the Ed25519 signature, that the signer key
+ * hashes to the address payment credential, and that the signed payload matches
+ * `expectedPayload`. Nonce/replay/session handling stays in the caller.
+ */
+export async function verifyDataSignature(
+  address: string,
+  coseSignature: string,
+  coseKey: string,
+  expectedPayload: string
+): Promise<DataSignatureResult> {
+  const signSrv = await cds.connect.to('CardanoSignService');
+
+  const result = await signSrv.send('VerifyDataSignature', {
+    address,
+    coseSignature,
+    coseKey,
+    expectedPayload
+  });
+
+  return {
+    valid: result.valid,
+    reason: result.reason,
+    signedPayload: result.signedPayload,
+    signerVkh: result.signerVkh
+  };
 }

@@ -157,8 +157,10 @@ export async function getTxStatus(txHash: string): Promise<TxStatus> {
 export async function getOnChainMetadata(txHash: string): Promise<OnChainMetadata[]> {
   const oDataSrv = await cds.connect.to('CardanoODataService');
 
+  // @odatano/core >= 1.9.4 renamed the action parameter to camelCase (no
+  // tx_hash alias kept); see ODATANO docs/KNOWN_ISSUES.md issue 8.
   const result = await oDataSrv.send('GetMetadataByTxHash', {
-    tx_hash: txHash
+    txHash
   });
 
   return (result || []).map((m: any) => ({

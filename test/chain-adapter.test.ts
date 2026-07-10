@@ -135,7 +135,7 @@ describe('chain-adapter', () => {
 
       const out = await chain.getOnChainMetadata('tx-1');
 
-      expect(oDataSrv.send).toHaveBeenCalledWith('GetMetadataByTxHash', { tx_hash: 'tx-1' });
+      expect(oDataSrv.send).toHaveBeenCalledWith('GetMetadataByTxHash', { txHash: 'tx-1' });
       expect(out).toEqual([
         { label: '1447', payload: '{"x":1}' },
         { label: '674', payload: 'note' }

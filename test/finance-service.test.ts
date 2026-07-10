@@ -136,8 +136,9 @@ describe('FinanceService — integration', () => {
       const { OnChainAnchors, Transactions } = cds.entities('finca');
       const anchor = await SELECT.one.from(OnChainAnchors).where({ ID: ANCHOR_ID });
       expect(anchor.status).toBe('CONFIRMED');
-      expect(anchor.slot).toBe(12345);
-      expect(anchor.blockNumber).toBe(678);
+      // cds^10: ieee754compatible=true — Int64 kommt als String aus der DB
+      expect(anchor.slot).toBe('12345');
+      expect(anchor.blockNumber).toBe('678');
       expect(anchor.confirmedAt).toBeTruthy();
 
       const tx = await SELECT.one.from(Transactions).where({ ID: TX_OK });

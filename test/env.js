@@ -25,3 +25,10 @@ require('ts-node').register({
 const cds = require('@sap/cds');
 cds.env.requires.db = { kind: 'sqlite', credentials: { url: ':memory:' } };
 cds.env.requires.auth = { kind: 'custom', impl: './test/auth-stub' };
+
+// cds^10: Queue-Scheduling ist per Default an und pollt die DB im Hintergrund.
+// Beim In-Memory-SQLite bekommt jede weitere Pool-Connection eine LEERE DB —
+// Tests laufen dann sporadisch auf "no such table". FINCA nutzt keine Event
+// Queues, daher in Tests komplett aus.
+cds.env.requires.queue = false;
+cds.env.requires.scheduling = false;

@@ -260,27 +260,34 @@ class FinanceService extends ApplicationService {
   private async _handleSubmitSigned(req: Request) {
     const { buildId, signedTxCbor } = req.data;
 
-    // Find anchor by buildId
-    const anchor = await SELECT.one.from(OnChainAnchors).where({ buildId });
-    if (!anchor) {
-      return req.reject(404, `No anchor found for build '${buildId}'`);
-    }
-    if (anchor.status !== 'PENDING') {
-      return req.reject(400, `Anchor status '${anchor.status}' — expected PENDING`);
-    }
-    if (!anchor.signingRequestId) {
-      return req.reject(400, `Anchor '${anchor.ID}' has no signing request — re-publish to create one`);
-    }
+    // Phase 1 (own committed tx): find + validate the anchor. Must NOT run in
+    // the request transaction — the plugin call below opens its own root tx,
+    // and with sqlite's single pooled connection a request tx held across it
+    // deadlocks (ODATANO KNOWN_ISSUES #11).
+    const anchor = await cds.tx(async () => {
+      const anchor = await SELECT.one.from(OnChainAnchors).where({ buildId });
+      if (!anchor) {
+        return req.reject(404, `No anchor found for build '${buildId}'`);
+      }
+      if (anchor.status !== 'PENDING') {
+        return req.reject(400, `Anchor status '${anchor.status}' — expected PENDING`);
+      }
+      if (!anchor.signingRequestId) {
+        return req.reject(400, `Anchor '${anchor.ID}' has no signing request — re-publish to create one`);
+      }
 
-    // Ownership check via linked tx or report
-    await _requireAnchorOwnership(req, anchor);
+      // Ownership check via linked tx or report
+      await _requireAnchorOwnership(req, anchor);
+      return anchor;
+    });
 
-    // Submit via ODATANO CardanoSignService (handles CIP-30 witness-set auto-merge).
+    // Phase 2 (no DB connection held): submit via ODATANO CardanoSignService
+    // (handles CIP-30 witness-set auto-merge).
     // No address passed: connected wallet at publish-time may differ from org.walletAddress,
     // and ODATANO's verifyOrThrow on the signature is the real security gate.
     const result = await chain.submitSigned(anchor.signingRequestId, signedTxCbor);
 
-    // Update anchor
+    // Phase 3 (request tx starts here): update anchor
     await UPDATE(OnChainAnchors).where({ ID: anchor.ID }).set({
       txHash: result.txHash,
       status: 'SUBMITTED',

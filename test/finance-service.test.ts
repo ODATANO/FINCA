@@ -136,9 +136,10 @@ describe('FinanceService — integration', () => {
       const { OnChainAnchors, Transactions } = cds.entities('finca');
       const anchor = await SELECT.one.from(OnChainAnchors).where({ ID: ANCHOR_ID });
       expect(anchor.status).toBe('CONFIRMED');
-      // cds^10: ieee754compatible=true — Int64 kommt als String aus der DB
-      expect(anchor.slot).toBe('12345');
-      expect(anchor.blockNumber).toBe('678');
+      // ieee754compatible betrifft nur OData-Responses; ein direkter DB-Read
+      // liefert Int64 im safe range als number
+      expect(Number(anchor.slot)).toBe(12345);
+      expect(Number(anchor.blockNumber)).toBe(678);
       expect(anchor.confirmedAt).toBeTruthy();
 
       const tx = await SELECT.one.from(Transactions).where({ ID: TX_OK });

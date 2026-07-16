@@ -204,6 +204,35 @@ describe('FinanceService — extra coverage', () => {
       const tx = await SELECT.one.from(Transactions).where({ ID: TX_DRAFT });
       expect(tx.status).toBe('PUBLISHED');
     });
+
+    test('does not deadlock when the submit opens its own root tx (ODATANO KNOWN_ISSUES #11)', async () => {
+      const { OnChainAnchors } = cds.entities('finca');
+      const ANCHOR_PEND2 = '00000000-0000-4000-8000-anchorpend02';
+      await INSERT.into(OnChainAnchors).entries({
+        ID: ANCHOR_PEND2, transaction_ID: TX_DRAFT, buildId: 'build-pending-2',
+        signingRequestId: 'sr-6', unsignedCbor: 'aa', status: 'PENDING', metadataLabel: 1447
+      });
+
+      // Mirror the real plugin: SubmitVerifiedTransaction runs its bookkeeping
+      // in a NEW ROOT transaction (cds.tx). With sqlite's single pooled
+      // connection this hangs forever if the handler still holds its request
+      // transaction across the call.
+      chainMock.submitSigned.mockImplementationOnce(async () => {
+        await cds.tx(async () => {
+          await SELECT.one.from(OnChainAnchors).where({ buildId: 'build-pending-2' });
+        });
+        return { txHash: 'tx-hash-detached-ok', status: 'SUBMITTED' };
+      });
+
+      const res = await POST('/odata/v4/finance/SubmitSigned', {
+        buildId: 'build-pending-2',
+        signedTxCbor: 'ff00'
+      });
+      expect(res.data.txHash).toBe('tx-hash-detached-ok');
+
+      const anchor = await SELECT.one.from(OnChainAnchors).where({ ID: ANCHOR_PEND2 });
+      expect(anchor.status).toBe('SUBMITTED');
+    }, 15_000);
   });
 
   // ─── RetryFailed ──────────────────────────────────────────────────────────

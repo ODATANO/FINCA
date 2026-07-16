@@ -285,7 +285,7 @@ class FinanceService extends ApplicationService {
     // (handles CIP-30 witness-set auto-merge).
     // No address passed: connected wallet at publish-time may differ from org.walletAddress,
     // and ODATANO's verifyOrThrow on the signature is the real security gate.
-    const result = await chain.submitSigned(anchor.signingRequestId, signedTxCbor);
+    const result = await chain.submitSigned(anchor.signingRequestId!, signedTxCbor);
 
     // Phase 3 (request tx starts here): update anchor
     await UPDATE(OnChainAnchors).where({ ID: anchor.ID }).set({

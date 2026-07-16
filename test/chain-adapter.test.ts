@@ -3,21 +3,22 @@
  * correct ODATANO action with the expected payload and maps the response
  * shape correctly. cds.connect.to is mocked so no real backend is needed.
  */
+import type { MockInstance } from 'vitest';
 import cds from '@sap/cds';
 import * as chain from '../srv/lib/chain-adapter';
 
 describe('chain-adapter', () => {
-  const txSrv = { send: jest.fn() };
-  const oDataSrv = { send: jest.fn() };
-  const signSrv = { send: jest.fn() };
+  const txSrv = { send: vi.fn() };
+  const oDataSrv = { send: vi.fn() };
+  const signSrv = { send: vi.fn() };
 
-  let connectSpy: jest.SpyInstance;
+  let connectSpy: MockInstance;
 
   beforeEach(() => {
     txSrv.send.mockReset();
     oDataSrv.send.mockReset();
     signSrv.send.mockReset();
-    connectSpy = jest.spyOn(cds.connect, 'to').mockImplementation(async (name: any) => {
+    connectSpy = vi.spyOn(cds.connect, 'to').mockImplementation(async (name: any) => {
       if (name === 'CardanoTransactionService') return txSrv as any;
       if (name === 'CardanoODataService') return oDataSrv as any;
       if (name === 'CardanoSignService') return signSrv as any;

@@ -5,31 +5,34 @@
  * ValidateBatch error paths, and VerifyTransaction's no-anchor / non-owned
  * branches.
  *
- * Uses its own in-memory DB (Jest module-isolated) and a distinct UUID
- * namespace so it cannot collide with the main suite.
+ * Uses its own in-memory DB (one Vitest fork per test file) and a distinct
+ * UUID namespace so it cannot collide with the main suite.
  */
 import cds from '@sap/cds';
 
-jest.mock('../srv/lib/chain-adapter', () => ({
-  buildMetadataTx: jest.fn(async () => ({
+// Spies on the NATIVE module graph — the CAP-loaded service requires the same
+// instance, so the stubs actually reach the handlers (see finance-service.test.ts).
+const chain = require('../srv/lib/chain-adapter') as typeof import('../srv/lib/chain-adapter');
+
+const chainMock = {
+  buildMetadataTx: vi.spyOn(chain, 'buildMetadataTx').mockImplementation(async () => ({
     buildId: '33333333-3333-4333-8333-333333333333',
     unsignedCbor: 'aabb',
     txBodyHash: 'ccdd',
     fee: '180000'
   })),
-  createSigningRequest: jest.fn(async () => '44444444-4444-4444-8444-444444444444'),
-  submitSigned: jest.fn(async () => ({
+  createSigningRequest: vi.spyOn(chain, 'createSigningRequest').mockImplementation(async () => '44444444-4444-4444-8444-444444444444'),
+  submitSigned: vi.spyOn(chain, 'submitSigned').mockImplementation(async () => ({
     txHash: 'tx-hash-extra-ok',
     status: 'SUBMITTED'
   })),
-  getTxStatus: jest.fn(async () => ({ confirmed: true, slot: 7777, blockNumber: 8888 })),
-  getOnChainMetadata: jest.fn(async () => [
+  getTxStatus: vi.spyOn(chain, 'getTxStatus').mockImplementation(async () => ({ confirmed: true, slot: 7777, blockNumber: 8888 })),
+  getOnChainMetadata: vi.spyOn(chain, 'getOnChainMetadata').mockImplementation(async () => [
     { label: '1447', payload: '{"org":{"id":"extra"}}' }
   ])
-}));
+};
 
 const { GET, POST } = (cds as any).test(__dirname + '/..');
-const chainMock = jest.requireMock('../srv/lib/chain-adapter') as any;
 
 describe('FinanceService — extra coverage', () => {
   // Distinct namespace so this file's data can't collide with finance-service.test.ts

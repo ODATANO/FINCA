@@ -5,26 +5,33 @@
  */
 import cds from '@sap/cds';
 
-// Mock chain-adapter before service loads
-jest.mock('../srv/lib/chain-adapter', () => ({
-  buildMetadataTx: jest.fn(async () => ({
-    buildId: '11111111-1111-4111-8111-111111111111',
-    unsignedCbor: 'aa00bb',
-    txBodyHash: 'cc00dd',
-    fee: '180000'
-  })),
-  createSigningRequest: jest.fn(async () => '22222222-2222-4222-8222-222222222222'),
-  submitSigned: jest.fn(async () => ({
-    txHash: 'tx-hash-deadbeef',
-    status: 'SUBMITTED'
-  })),
-  getTxStatus: jest.fn(async () => ({ confirmed: true, slot: 12345, blockNumber: 678 })),
-  getOnChainMetadata: jest.fn(async () => [
-    { label: '1447', payload: '{"org":{"id":"x"}}' }
-  ])
-}));
+// Mock the chain-adapter on the NATIVE module graph: the CAP server booted by
+// cds.test() loads srv/finance-service.ts through Node's require (ts-node), so
+// vi.mock — which only patches the Vite module graph — would never reach it.
+// require() shares the native graph, so these spies land on the exact module
+// instance the service handlers call (NIGHTGATE pattern, see ODATANO tests).
+const chain = require('../srv/lib/chain-adapter') as typeof import('../srv/lib/chain-adapter');
 
-const { GET, POST, expect: cdsExpect } = (cds as any).test(__dirname + '/..');
+vi.spyOn(chain, 'buildMetadataTx').mockImplementation(async () => ({
+  buildId: '11111111-1111-4111-8111-111111111111',
+  unsignedCbor: 'aa00bb',
+  txBodyHash: 'cc00dd',
+  fee: '180000'
+}));
+vi.spyOn(chain, 'createSigningRequest').mockImplementation(async () => '22222222-2222-4222-8222-222222222222');
+vi.spyOn(chain, 'submitSigned').mockImplementation(async () => ({
+  txHash: 'tx-hash-deadbeef',
+  status: 'SUBMITTED'
+}));
+vi.spyOn(chain, 'getTxStatus').mockImplementation(async () => ({ confirmed: true, slot: 12345, blockNumber: 678 }));
+vi.spyOn(chain, 'getOnChainMetadata').mockImplementation(async () => [
+  { label: '1447', payload: '{"org":{"id":"x"}}' }
+]);
+
+// NB: do NOT destructure `expect` from cds.test() — accessing that getter
+// installs chai(+chai-as-promised) as the GLOBAL expect and clobbers Vitest's,
+// silently breaking `.rejects` matchers in the whole file.
+const { GET, POST } = (cds as any).test(__dirname + '/..');
 
 describe('FinanceService — integration', () => {
   // Distinct UUIDs to avoid collisions with CSV seed data auto-loaded by cds.test
